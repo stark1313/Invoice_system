@@ -5,6 +5,7 @@ from extensions import db
 
 def create_app():
     app = Flask(__name__)
+    os.makedirs(os.path.join(os.path.dirname(__file__), "instance"), exist_ok=True)
     app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = SQLALCHEMY_TRACK_MODIFICATIONS
     app.config["SECRET_KEY"] = SECRET_KEY
