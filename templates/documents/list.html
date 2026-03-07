@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}자료실{% endblock %}
+{% block content %}
+<style>
+  .document-list-table { font-size: 0.8rem; }
+  .document-list-table th, .document-list-table td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style>
+<h2 class="mb-2">자료실</h2>
+<div class="page-actions mb-3">
+  <a class="btn btn-primary" href="{{ url_for('document_add') }}">자료 추가</a>
+  <button type="button" class="btn btn-outline-danger" id="btnDocumentDelete">삭제</button>
+</div>
+<form method="get" class="row g-2 align-items-center mb-3">
+  <div class="col-sm-6 col-md-4">
+    <input type="text" name="q" class="form-control" placeholder="자료명 / 비고 검색" value="{{ q or '' }}">
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-outline-secondary">검색</button>
+  </div>
+  {% if q %}
+  <div class="col-auto">
+    <a href="{{ url_for('document_list') }}" class="btn btn-link btn-sm">초기화</a>
+  </div>
+  {% endif %}
+</form>
+<table class="table table-bordered table-hover document-list-table">
+  <thead class="table-light">
+    <tr><th style="width:40px"></th><th>자료명</th><th>비고</th><th>입력일자</th><th>수정일자</th><th>ID</th></tr>
+  </thead>
+  <tbody>
+    {% for d in documents %}
+    <tr>
+      <td><input type="checkbox" class="form-check-input document-check" value="{{ d.id }}" aria-label="선택"></td>
+      <td><a href="{{ url_for('document_edit', id=d.id) }}" class="text-decoration-none">{{ d.name or '' }}</a></td>
+      <td>{{ (d.memo or '')[:30] }}{% if d.memo and d.memo|length > 30 %}...{% endif %}</td>
+      <td>{{ d.created_at.strftime('%Y-%m-%d %H:%M') if d.created_at else '-' }}</td>
+      <td>{{ d.updated_at.strftime('%Y-%m-%d %H:%M') if d.updated_at else '-' }}</td>
+      <td>{{ d.code or ("D{:06d}"|format(d.id)) }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6">등록된 자료가 없습니다.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+<script>
+(function() {
+  var deleteBase = "{{ url_for('document_delete', id=0) }}";
+  function getCheckedId() {
+    var c = document.querySelectorAll('.document-check:checked');
+    if (c.length !== 1) { alert('자료를 1건 선택하세요.'); return null; }
+    return c[0].value;
+  }
+  document.getElementById('btnDocumentDelete').onclick = function() {
+    var id = getCheckedId();
+    if (!id || !confirm('삭제할까요?')) return;
+    var f = document.createElement('form');
+    f.method = 'POST';
+    f.action = deleteBase.replace('/0/', '/' + id + '/');
+    document.body.appendChild(f);
+    f.submit();
+  };
+})();
+</script>
+{% endblock %}

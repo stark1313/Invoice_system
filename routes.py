@@ -7,7 +7,7 @@ from werkzeug.utils import secure_filename
 from PIL import Image
 from sqlalchemy import or_, extract
 from extensions import db
-from models import Customer, Item, Transaction, TransactionItem, CompanyInfo
+from models import Customer, Item, Transaction, TransactionItem, CompanyInfo, Document, DocumentFile
 from pdf_utils import build_napum_pdf, build_cheonggu_pdf, build_gyeonjeok_pdf
 from utils import amount_to_korean_won
 from config import (
@@ -149,6 +149,135 @@ def register_routes(app):
         ext = company.stamp_path.rsplit(".", 1)[-1].lower()
         mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "gif": "image/gif", "webp": "image/webp"}.get(ext, "image/png")
         return send_file(company.stamp_path, mimetype=mime)
+
+    # ----- 자료실 -----
+    def _next_document_code():
+        r = db.session.query(db.func.max(Document.code)).filter(Document.code.like("D%")).scalar()
+        n = int(r[1:]) + 1 if r and len(r) > 1 and r[1:].isdigit() else 1
+        return f"D{n:06d}"
+
+    @app.route("/documents")
+    def document_list():
+        q = request.args.get("q", "").strip()
+        query = Document.query
+        if q:
+            like = f"%{q}%"
+            query = query.filter(
+                or_(
+                    Document.name.ilike(like),
+                    Document.memo.ilike(like),
+                )
+            )
+        documents = query.order_by(Document.name).all()
+        return render_template("documents/list.html", documents=documents, q=q)
+
+    def _save_document_files(doc, request):
+        upload_dir = os.path.join(current_app.instance_path, "uploads", "documents")
+        os.makedirs(upload_dir, exist_ok=True)
+        for i, f in enumerate(request.files.getlist("file")):
+            if f and f.filename:
+                safe_name = secure_filename(f"{doc.id}_{doc.code or 'doc'}_{i}_{f.filename}")
+                filepath = os.path.join(upload_dir, safe_name)
+                try:
+                    f.save(filepath)
+                    df = DocumentFile(document_id=doc.id, file_path=filepath, file_name=f.filename)
+                    db.session.add(df)
+                except Exception:
+                    pass
+
+    @app.route("/documents/add", methods=["GET", "POST"])
+    def document_add():
+        if request.method == "POST":
+            doc = Document(
+                code=_next_document_code(),
+                name=request.form.get("name", "").strip(),
+                memo=request.form.get("memo", "").strip() or None,
+            )
+            db.session.add(doc)
+            db.session.flush()
+            _save_document_files(doc, request)
+            db.session.commit()
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify(ok=True)
+            flash("자료가 등록되었습니다.", "success")
+            return redirect(url_for("document_list"))
+        return render_template("documents/form.html", document=None)
+
+    @app.route("/documents/<int:id>/edit", methods=["GET", "POST"])
+    def document_edit(id):
+        doc = Document.query.get_or_404(id)
+        if request.method == "POST":
+            doc.name = request.form.get("name", "").strip()
+            doc.memo = request.form.get("memo", "").strip() or None
+            remove_ids = request.form.getlist("remove_file_id", type=int)
+            for fid in remove_ids:
+                df = DocumentFile.query.filter(DocumentFile.id == fid, DocumentFile.document_id == doc.id).first()
+                if df:
+                    if df.file_path and os.path.isfile(df.file_path):
+                        try:
+                            os.remove(df.file_path)
+                        except Exception:
+                            pass
+                    db.session.delete(df)
+            if request.form.get("remove_legacy_file") == "1" and doc.file_path:
+                if os.path.isfile(doc.file_path):
+                    try:
+                        os.remove(doc.file_path)
+                    except Exception:
+                        pass
+                doc.file_path = None
+                doc.file_name = None
+            _save_document_files(doc, request)
+            db.session.commit()
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify(ok=True)
+            flash("자료가 수정되었습니다.", "success")
+            return redirect(url_for("document_list"))
+        return render_template("documents/form.html", document=doc)
+
+    @app.route("/documents/<int:id>/download")
+    def document_file_download_legacy(id):
+        """기존 단일 파일(doc.file_path) 다운로드 - 하위 호환"""
+        doc = Document.query.get_or_404(id)
+        if not doc.file_path or not os.path.isfile(doc.file_path):
+            flash("첨부파일이 없습니다.", "danger")
+            return redirect(url_for("document_list"))
+        return send_file(
+            doc.file_path,
+            as_attachment=True,
+            download_name=doc.file_name or os.path.basename(doc.file_path),
+        )
+
+    @app.route("/documents/<int:doc_id>/file/<int:file_id>/download")
+    def document_file_download(doc_id, file_id):
+        df = DocumentFile.query.filter(DocumentFile.id == file_id, DocumentFile.document_id == doc_id).first_or_404()
+        if not df.file_path or not os.path.isfile(df.file_path):
+            flash("첨부파일이 없습니다.", "danger")
+            return redirect(url_for("document_list"))
+        return send_file(
+            df.file_path,
+            as_attachment=True,
+            download_name=df.file_name or os.path.basename(df.file_path),
+        )
+
+    @app.route("/documents/<int:id>/delete", methods=["POST"])
+    def document_delete(id):
+        doc = Document.query.get_or_404(id)
+        for df in doc.files:
+            if df.file_path and os.path.isfile(df.file_path):
+                try:
+                    os.remove(df.file_path)
+                except Exception:
+                    pass
+        if doc.file_path and os.path.isfile(doc.file_path):
+            try:
+                os.remove(doc.file_path)
+            except Exception:
+                pass
+        db.session.delete(doc)
+        db.session.commit()
+        flash("자료가 삭제되었습니다.", "success")
+        return redirect(url_for("document_list"))
 
     # ----- Customers -----
     @app.route("/customers")

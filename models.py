@@ -69,6 +69,31 @@ class CompanyInfo(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class Document(db.Model):
+    """자료실"""
+    __tablename__ = "documents"
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(10), unique=True)
+    name = db.Column(db.String(200), nullable=False)
+    spec = db.Column(db.String(200))
+    memo = db.Column(db.String(500))
+    file_path = db.Column(db.String(500))
+    file_name = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    files = db.relationship("DocumentFile", backref="document", lazy=True, cascade="all, delete-orphan")
+
+
+class DocumentFile(db.Model):
+    """자료실 첨부파일 (다중)"""
+    __tablename__ = "document_files"
+    id = db.Column(db.Integer, primary_key=True)
+    document_id = db.Column(db.Integer, db.ForeignKey("documents.id"), nullable=False)
+    file_path = db.Column(db.String(500), nullable=False)
+    file_name = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class TransactionItem(db.Model):
     __tablename__ = "transaction_items"
     id = db.Column(db.Integer, primary_key=True)

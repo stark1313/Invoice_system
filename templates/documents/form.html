@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ '자료 수정' if document else '자료 추가' }}{% endblock %}
+{% block content %}
+<form method="post" enctype="multipart/form-data">
+  <h2 class="mb-2">{{ '자료 수정' if document else '자료 추가' }}</h2>
+  <div class="page-actions mb-3">
+    <button type="submit" class="btn btn-primary">저장</button>
+    <a class="btn btn-secondary" href="{{ url_for('document_list') }}">목록</a>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <div class="mb-2">
+        <label class="form-label">자료명 *</label>
+        <input type="text" name="name" class="form-control" required value="{{ document.name if document else '' }}">
+      </div>
+      <div class="mb-2">
+        <label class="form-label">비고</label>
+        <textarea name="memo" class="form-control" rows="3" placeholder="비고">{{ document.memo if document else '' }}</textarea>
+      </div>
+      <div class="mb-2">
+        <label class="form-label">첨부파일</label>
+        {% if document and (document.files or document.file_path) %}
+        <div class="mb-2">
+          {% for df in document.files %}
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <a href="{{ url_for('document_file_download', doc_id=document.id, file_id=df.id) }}" class="btn btn-outline-secondary btn-sm" target="_blank">{{ df.file_name }}</a>
+            <label class="form-check form-check-inline mb-0">
+              <input type="checkbox" name="remove_file_id" value="{{ df.id }}" class="form-check-input"> 삭제
+            </label>
+          </div>
+          {% endfor %}
+          {% if document.file_path and not document.files %}
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <a href="{{ url_for('document_file_download_legacy', id=document.id) }}" class="btn btn-outline-secondary btn-sm" target="_blank">{{ document.file_name or '첨부파일' }}</a>
+            <label class="form-check form-check-inline mb-0">
+              <input type="checkbox" name="remove_legacy_file" value="1" class="form-check-input"> 삭제
+            </label>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+        <input type="file" name="file" class="form-control" accept="*/*" multiple>
+        <small class="text-muted">여러 파일을 동시에 선택할 수 있습니다. PDF, DOC, XLS, 이미지 등 모든 파일 형식 지원</small>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+(function() {
+  document.querySelector('form').addEventListener('submit', function(e) {
+    if (!confirm('저장할까요?')) e.preventDefault();
+  });
+})();
+</script>
+{% endblock %}
