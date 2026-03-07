@@ -66,10 +66,11 @@
       <form method="post" id="transForm" class="{% if transaction and not (is_editable|default(false)) %}form-readonly{% endif %}">
         <div class="row mb-3">
           <div class="col-md-2">
-            <label class="form-label">구분</label>
-            <select id="gubunFilter" class="form-select" {% if transaction and not (is_editable|default(false)) %}disabled{% endif %}>
-              <option value="관급" {{ 'selected' if transaction and (transaction.customer.gubun or '일반') == '관급' else '' }}>관급</option>
-              <option value="일반" {{ 'selected' if not transaction or (transaction.customer.gubun or '일반') != '관급' else '' }}>일반</option>
+            <label class="form-label">구분 *</label>
+            <select id="gubunFilter" name="gubun" class="form-select" required {% if transaction and not (is_editable|default(false)) %}disabled{% endif %}>
+              <option value="" {{ 'selected' if not transaction or not (transaction and transaction.customer) else '' }}>선택</option>
+              <option value="관급" {{ 'selected' if transaction and transaction.customer and (transaction.customer.gubun or '') == '관급' else '' }}>관급</option>
+              <option value="일반" {{ 'selected' if transaction and transaction.customer and (transaction.customer.gubun or '') != '관급' else '' }}>일반</option>
             </select>
           </div>
           <div class="col-md-4">
@@ -88,13 +89,23 @@
                    value="{{ transaction.transaction_date.isoformat() if transaction else default_date }}" {% if transaction and not (is_editable|default(false)) %}readonly{% endif %}>
           </div>
           <div class="col-md-3">
+            <label class="form-label">세액여부</label>
+            <select id="vatYeobuSelect" class="form-select" {% if transaction and not (is_editable|default(false)) %}disabled{% endif %}>
+              <option value="" {{ 'selected' if not transaction or (transaction.customer.gubun or '') == '관급' or vat_excluded_initial is not defined else '' }}>선택</option>
+              <option value="0" {{ 'selected' if transaction and (transaction.customer.gubun or '') != '관급' and vat_excluded_initial is defined and not vat_excluded_initial else '' }}>포함</option>
+              <option value="1" {{ 'selected' if transaction and (transaction.customer.gubun or '') != '관급' and vat_excluded_initial else '' }}>제외</option>
+            </select>
+          </div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">공사명</label>
+            <input type="text" name="project_name" class="form-control" value="{{ transaction.project_name if transaction else '' }}" placeholder="견적서에 표시될 공사명" {% if transaction and not (is_editable|default(false)) %}readonly{% endif %}>
+          </div>
+          <div class="col-md-6">
             <label class="form-label">비고</label>
             <input type="text" name="memo" class="form-control" value="{{ transaction.memo if transaction else '' }}" {% if transaction and not (is_editable|default(false)) %}readonly{% endif %}>
           </div>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">공사명</label>
-          <input type="text" name="project_name" class="form-control" value="{{ transaction.project_name if transaction else '' }}" placeholder="견적서에 표시될 공사명" {% if transaction and not (is_editable|default(false)) %}readonly{% endif %}>
         </div>
 
         {% if transaction %}
@@ -443,6 +454,8 @@
 (function initGubunCustomerFilter() {
   var gubunFilter = document.getElementById('gubunFilter');
   var customerSelect = document.getElementById('customerSelect');
+  var vatYeobuSelect = document.getElementById('vatYeobuSelect');
+  var vatExcludedInput = document.getElementById('vatExcluded');
   if (!gubunFilter || !customerSelect) return;
   var allCustomers = [];
   customerSelect.querySelectorAll('option').forEach(function(opt) {
@@ -455,26 +468,58 @@
     }
   });
   function filterCustomersByGubun() {
-    var gubun = (gubunFilter.value || '일반').trim();
+    var gubun = (gubunFilter.value || '').trim();
     var selectedVal = customerSelect.value;
     var selectedStillValid = false;
     customerSelect.innerHTML = '<option value="">선택</option>';
-    allCustomers.forEach(function(c) {
-      if (c.gubun === gubun) {
-        var opt = document.createElement('option');
-        opt.value = c.value;
-        opt.textContent = c.text;
-        opt.setAttribute('data-gubun', c.gubun);
-        if (c.value === selectedVal) {
-          opt.selected = true;
-          selectedStillValid = true;
+    if (gubun) {
+      allCustomers.forEach(function(c) {
+        if (c.gubun === gubun) {
+          var opt = document.createElement('option');
+          opt.value = c.value;
+          opt.textContent = c.text;
+          opt.setAttribute('data-gubun', c.gubun);
+          if (c.value === selectedVal) {
+            opt.selected = true;
+            selectedStillValid = true;
+          }
+          customerSelect.appendChild(opt);
         }
-        customerSelect.appendChild(opt);
-      }
-    });
+      });
+    }
     if (!selectedStillValid && selectedVal) customerSelect.value = '';
+    updateVatYeobuState();
+  }
+  function updateVatYeobuState() {
+    var gubun = (gubunFilter.value || '').trim();
+    if (!vatYeobuSelect || !vatExcludedInput) return;
+    var transForm = document.getElementById('transForm');
+    var isReadonly = transForm && transForm.classList.contains('form-readonly');
+    if (gubun === '일반') {
+      if (!isReadonly) {
+        vatYeobuSelect.disabled = false;
+        vatYeobuSelect.removeAttribute('data-skip-required');
+        vatYeobuSelect.required = true;
+      }
+      vatExcludedInput.value = (vatYeobuSelect.value === '1') ? '1' : '0';
+    } else {
+      if (!isReadonly) {
+        vatYeobuSelect.disabled = true;
+        vatYeobuSelect.value = '';
+        vatYeobuSelect.required = false;
+        vatYeobuSelect.setAttribute('data-skip-required', '1');
+      }
+      vatExcludedInput.value = '0';
+    }
   }
   gubunFilter.addEventListener('change', filterCustomersByGubun);
+  if (vatYeobuSelect) {
+    vatYeobuSelect.addEventListener('change', function() {
+      if (vatExcludedInput && gubunFilter.value === '일반') {
+        vatExcludedInput.value = (this.value === '1') ? '1' : '0';
+      }
+    });
+  }
   filterCustomersByGubun();
 })();
 </script>
@@ -668,6 +713,20 @@
   if (transForm) transForm.addEventListener('submit', function(e) {
     e.preventDefault();
     if (transForm.classList.contains('form-readonly')) return;
+    var gubunFilter = document.getElementById('gubunFilter');
+    var vatYeobuSelect = document.getElementById('vatYeobuSelect');
+    if (gubunFilter && gubunFilter.value === '일반' && vatYeobuSelect && (vatYeobuSelect.value === '' || vatYeobuSelect.value === null)) {
+      alert('구분이 일반일 경우 세액여부(포함/제외)를 선택해주세요.');
+      return;
+    }
+    var vatExcludedInput = document.getElementById('vatExcluded');
+    if (gubunFilter && vatExcludedInput) {
+      if (gubunFilter.value === '일반') {
+        vatExcludedInput.value = (vatYeobuSelect && vatYeobuSelect.value === '1') ? '1' : '0';
+      } else {
+        vatExcludedInput.value = '0';
+      }
+    }
     if (!confirm('저장하시겠습니까?')) return;
     var rowIdx = 0;
     itemBody.querySelectorAll('tr').forEach(tr => {
