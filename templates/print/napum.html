@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>납품서</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    @page { size: A4; margin: 10mm; }
+    @media print {
+      .no-print { display: none !important; }
+      body { margin: 0; padding: 0; }
+      .print-area { page-break-inside: avoid; }
+      .gyeonjeok-merged { page-break-inside: avoid; }
+    }
+    .print-area { max-width: 210mm; margin: 0 auto; padding: 8mm; border: 1px solid #000; font-family: "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; }
+    .page-actions { text-align: right; margin-bottom: 1rem; }
+    .gyeonjeok-title { font-size: 1.9rem; font-weight: bold; text-align: center; margin-bottom: 8mm; letter-spacing: 0.3em; }
+    .gyeonjeok-merged { page-break-inside: avoid; }
+    .gyeonjeok-info-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; table-layout: fixed; border: 1px solid #000; border-bottom: none; }
+    .gyeonjeok-info-table th, .gyeonjeok-info-table td { border: 1px solid #000; padding: 2mm; }
+    .gyeonjeok-info-table th { background: #f5f5f5; font-weight: bold; white-space: nowrap; text-align: center; }
+    .gyeonjeok-info-table .gyeonjeok-amount-cell { vertical-align: middle; text-align: center; padding: 1mm 2mm; line-height: 1.6; white-space: normal; }
+    .gyeonjeok-info-table .name-with-stamp { position: relative; }
+    .gyeonjeok-info-table .stamp-area { position: absolute; right: 2mm; top: 50%; transform: translateY(-50%); }
+    .gyeonjeok-info-table .stamp-img { height: 12mm; vertical-align: middle; background: transparent; }
+    .gyeonjeok-info-table .section-title { font-weight: bold; text-align: center; }
+    .gyeonjeok-info-table .gyeonjeok-date-cell { text-align: left; }
+    .gyeonjeok-info-table .gyeonjeok-left-no-border { border-top: none; border-bottom: none; }
+    .gyeonjeok-info-table .gyeonjeok-date-cell.gyeonjeok-left-no-border { border-top: 1px solid #000; }
+    .gyeonjeok-info-table .gyeonjeok-amount-cell { border-top: none; }
+    .gyeonjeok-info-table .gyeonjeok-left-large { font-size: 0.95rem; }
+    .gyeonjeok-info-table .gyeonjeok-gwiha { font-weight: bold; }
+    .gyeonjeok-info-table .gyeonjeok-gongsa { text-align: center; }
+    .gyeonjeok-info-table .gyeonjeok-contact-cell { font-size: calc(0.6rem + 1pt); white-space: nowrap; }
+    .gyeonjeok-info-table tr { height: 6mm; }
+    .gyeonjeok-info-table .gyeonjeok-cell-small { font-size: 0.65rem; }
+    .gyeonjeok-info-table .gyeonjeok-cell-addr { font-size: 0.72rem; }
+    .gyeonjeok-detail-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; table-layout: fixed; border: 1px solid #000; border-top: none; margin-top: -1px; }
+    .gyeonjeok-detail-table th, .gyeonjeok-detail-table td { border: 1px solid #000; padding: 2mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
+    .gyeonjeok-detail-table th { background: #f5f5f5; text-align: center; font-weight: bold; height: 5.5mm; }
+    .gyeonjeok-detail-table tbody tr { height: 5.5mm; }
+    .gyeonjeok-detail-table tbody tr td { height: 5.5mm; min-height: 5.5mm; }
+    .gyeonjeok-detail-table tbody tr.blank-row td { height: 5.5mm !important; min-height: 5.5mm !important; line-height: 5.5mm !important; }
+    .gyeonjeok-detail-table tbody tr.blank-row.gyeonjeok-ihayebek-row td:nth-child(2) { text-align: right; }
+    .gyeonjeok-detail-table tbody tr.blank-row.gyeonjeok-ihayebek-row td:nth-child(5) { text-align: left; }
+    .gyeonjeok-detail-table tbody td:nth-child(1), .gyeonjeok-detail-table tbody td:nth-child(2), .gyeonjeok-detail-table tbody td:nth-child(3), .gyeonjeok-detail-table tbody td:nth-child(4) { text-align: center; }
+    .gyeonjeok-detail-table tbody td:nth-child(5), .gyeonjeok-detail-table tbody td:nth-child(6) { text-align: right; }
+    .gyeonjeok-detail-table tbody td:nth-child(7) { text-align: left; }
+    .gyeonjeok-detail-table .empty-cell { text-align: center; }
+    .gyeonjeok-detail-table .gyeonjeok-total-row td { font-weight: bold; height: 5.5mm; }
+    .gyeonjeok-detail-table .gyeonjeok-total-row td:nth-child(6) { text-align: right; }
+    .gyeonjeok-detail-table .gyeonjeok-vat-row td { font-size: 0.8rem; padding: 1mm 2mm; height: 5.5mm; }
+    .gyeonjeok-detail-table .gyeonjeok-cell-small { font-size: 0.65rem; }
+    /* 납품서: 상세표만, 하단 문구/회사정보 */
+    .napum-detail-table { border-top: 1px solid #000; }
+    .napum-footer-text { text-align: center; margin-top: 1em; }
+    .napum-footer-info { text-align: right; margin-top: 2em; line-height: 1.6; }
+    .napum-footer-info table { margin-left: auto; border: none; }
+    .napum-footer-info td { border: none; padding: 0 0 0.1em 0; vertical-align: top; }
+    .napum-footer-info .napum-footer-label { text-align: left; min-width: 10em; padding-left: 5ch; }  /* 날짜·라벨 오른쪽으로 */
+    .napum-footer-info .napum-footer-colon { width: 1em; padding: 0 0.2em 0 0; }  /* : 세로 일치 */
+    .napum-footer-info .napum-footer-value { text-align: left; padding-left: 0.2em; }
+    .napum-footer-info .napum-footer-equal { letter-spacing: 2.7em; }  /* 주소·상호·대표 균등 폭 */
+    /* 납품서: 제목-표 거리 3줄, 표 위 공사명/금액 */
+    .napum-title { margin-bottom: 3em; }  /* 제목-표 거리 약 3줄 */
+    .napum-info-above { font-size: 14pt; margin-bottom: 1em; line-height: 1.5; width: 100%; table-layout: fixed; border: none; }
+    .napum-info-above td { border: none; padding: 0 0 0.2em 0; vertical-align: top; }
+    .napum-info-above .napum-label { width: 19.44%; }
+    .napum-info-above .napum-label-3 span { display: inline-block; width: 33.33%; text-align: center; }
+    .napum-info-above .napum-value-cell { padding-left: 0.5em; }
+  </style>
+</head>
+<body>
+  <div class="print-area">
+    <div class="gyeonjeok-title napum-title">납  품  서</div>
+
+    <table class="napum-info-above">
+      <tr><td class="napum-label napum-label-3"><span>공</span><span>사</span><span>명</span></td><td class="napum-value-cell">:&nbsp;&nbsp;&nbsp; {{ transaction.project_name or '' }}</td></tr>
+      <tr><td class="napum-label napum-label-3"><span>금</span><span></span><span>액</span></td><td class="napum-value-cell">:&nbsp;&nbsp;&nbsp; ₩ {{ "{:,}".format(total_amount) }}원 ({{ total_amount_korean }})</td></tr>
+    </table>
+
+    <div class="gyeonjeok-merged">
+      <table class="gyeonjeok-detail-table napum-detail-table">
+        <colgroup><col style="width:19.44%"><col style="width:19.44%"><col style="width:8.33%"><col style="width:8.33%"><col style="width:11.11%"><col style="width:16.67%"><col style="width:16.67%"></colgroup>
+        <thead>
+          <tr>
+            <th>품명</th>
+            <th>규격</th>
+            <th>수량</th>
+            <th>단위</th>
+            <th>단가</th>
+            <th>공급가액</th>
+            <th>비고</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td{% if (r.name or '')|length > 15 %} class="gyeonjeok-cell-small"{% endif %}>{{ r.name or '' }}</td>
+            <td{% if (r.get('spec') or '')|length > 15 %} class="gyeonjeok-cell-small"{% endif %}>{{ r.get('spec') or '' }}</td>
+            <td>{{ r.quantity or '' }}</td>
+            <td>{{ r.unit or '' }}</td>
+            <td>{{ "{:,}".format((r.total // r.quantity) if r.quantity else 0) }}원</td>
+            <td>{{ "{:,}".format(r.total) }}원</td>
+            <td></td>
+          </tr>
+          {% endfor %}
+          {% set blank_count = (10 - rows|length) if rows|length < 10 else 0 %}
+          {% if blank_count > 0 %}
+          <tr class="blank-row gyeonjeok-ihayebek-row"><td></td><td>이</td><td>하</td><td>여</td><td>백</td><td></td><td></td></tr>
+          {% for i in range(blank_count - 1) %}
+          <tr class="blank-row"><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+          {% endfor %}
+          {% endif %}
+          <tr class="gyeonjeok-total-row">
+            <td colspan="5" class="text-center">합계 (VAT 포함)</td>
+            <td>{{ "{:,}".format(total_amount) }}원</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="napum-footer-text">상기와 같이 납품하였기에 납품서를 제출합니다.</div>
+    <div class="napum-footer-info">
+      <table>
+        <tr><td class="napum-footer-label">{{ transaction.transaction_date.year }}년 {{ transaction.transaction_date.month }}월 {{ transaction.transaction_date.day }}일</td><td class="napum-footer-colon"></td><td class="napum-footer-value"></td></tr>
+        <tr><td class="napum-footer-label">사업자번호</td><td class="napum-footer-colon">:</td><td class="napum-footer-value">{{ supplier.biz_no or '' }}</td></tr>
+        <tr><td class="napum-footer-label napum-footer-equal">주소</td><td class="napum-footer-colon">:</td><td class="napum-footer-value">{{ supplier.address or '' }}</td></tr>
+        <tr><td class="napum-footer-label napum-footer-equal">상호</td><td class="napum-footer-colon">:</td><td class="napum-footer-value">{{ supplier.name or '' }}</td></tr>
+        <tr><td class="napum-footer-label napum-footer-equal">대표</td><td class="napum-footer-colon">:</td><td class="napum-footer-value">{{ supplier.ceo or '' }}</td></tr>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

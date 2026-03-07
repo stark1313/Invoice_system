@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ '품목 수정' if item else '품목 추가' }}{% endblock %}
+{% block content %}
+<form method="post" enctype="multipart/form-data">
+  <h2 class="mb-2">{{ '품목 수정' if item else '품목 추가' }}</h2>
+  <div class="page-actions mb-3">
+    <button type="submit" class="btn btn-primary">저장</button>
+    <a class="btn btn-secondary" href="{{ url_for('item_list') }}">목록</a>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <div class="mb-2">
+        <label class="form-label">품목명 *</label>
+        <input type="text" name="name" class="form-control" required value="{{ item.name if item else '' }}">
+      </div>
+      <div class="mb-2">
+        <label class="form-label">규격</label>
+        <input type="text" name="spec" class="form-control" value="{{ item.spec if item else '' }}" placeholder="예: #6, 100*100">
+      </div>
+      <div class="mb-2">
+        <label class="form-label">단위</label>
+        <input type="text" name="unit" class="form-control" value="{{ item.unit if item else 'EA' }}" placeholder="EA, KG, m², BOX 등">
+      </div>
+      <div class="mb-2">
+        <label class="form-label">단가(원)</label>
+        <input type="text" name="unit_price" class="form-control" value="{{ '{:,}'.format(item.unit_price) if item else '0' }}" placeholder="1100 (부가세 포함)">
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="mb-3">
+        <label class="form-label">품목 사진</label>
+        {% if has_image %}
+        <div class="mb-2">
+          <img src="{{ url_for('item_image', id=item.id) }}" alt="품목 사진" class="img-thumbnail" style="max-height:180px; max-width:100%;">
+        </div>
+        <div class="form-check mb-2">
+          <input type="checkbox" name="remove_image" value="1" class="form-check-input" id="removeImage">
+          <label class="form-check-label" for="removeImage">사진 삭제</label>
+        </div>
+        {% endif %}
+        <input type="file" name="image" class="form-control" accept="image/*">
+        <small class="text-muted">PNG, JPG 등 이미지 파일 (기존 사진 유지하려면 비워두세요)</small>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+(function() {
+  document.querySelector('form').addEventListener('submit', function(e) {
+    if (!confirm('저장할까요?')) e.preventDefault();
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flask 서버 실행",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/invoice_system/app.py",
+      "cwd": "${workspaceFolder}/invoice_system",
+      "python": "${workspaceFolder}/invoice_system/venv/bin/python",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Flask (invoice_system만 열었을 때)",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/app.py",
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/venv/bin/python",
+      "console": "integratedTerminal"
+    }
+  ]
+}

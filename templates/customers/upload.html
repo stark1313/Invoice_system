@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}거래처 일괄 등록{% endblock %}
+{% block content %}
+<form method="post" enctype="multipart/form-data" id="customerUploadForm">
+  <h2 class="mb-2">거래처 일괄 등록</h2>
+  <div class="page-actions mb-3">
+    <a href="{{ url_for('customer_sample_csv') }}" class="btn btn-outline-secondary">샘플 CSV 다운로드</a>
+    <button type="submit" form="customerUploadForm" class="btn btn-primary">업로드</button>
+    <a class="btn btn-secondary" href="{{ url_for('customer_list') }}">목록</a>
+  </div>
+  <p class="text-muted mb-3">CSV 파일을 업로드하면 첫 줄(헤더)은 건너뛰고, 2행부터 거래처가 등록됩니다. 거래처명은 필수입니다.</p>
+  <div class="mb-3">
+    <label class="form-label">CSV 파일</label>
+    <input type="file" name="file" class="form-control" accept=".csv,.txt" required>
+  </div>
+</form>
+<div class="mt-4">
+  <h6>CSV 컬럼 순서</h6>
+  <ol class="small">
+    <li>거래처명 (필수)</li>
+    <li>사업자등록번호</li>
+    <li>업태</li>
+    <li>종목</li>
+    <li>전화번호</li>
+    <li>대표자</li>
+    <li>주소</li>
+  </ol>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function() {
+  document.getElementById('customerUploadForm').addEventListener('submit', function(e) {
+    if (!confirm('업로드할까요?')) e.preventDefault();
+  });
+})();
+</script>
+{% endblock %}

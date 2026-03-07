@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}{{ list_title|default('주문내역') }}{% endblock %}
+{% block content %}
+<style>
+  .transaction-list-table { font-size: 0.8rem; }
+  .transaction-list-table th, .transaction-list-table td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .transaction-list-table th { text-align: center; }
+  .transaction-list-table td:nth-child(1), .transaction-list-table td:nth-child(2), .transaction-list-table td:nth-child(3),
+  .transaction-list-table td:nth-child(8), .transaction-list-table td:nth-child(9) { text-align: center; }
+  .sales-summary { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .sales-summary .card { min-width: 180px; }
+  .order-counts { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; font-size: 0.95rem; }
+  .order-counts span { padding: 0.25rem 0.5rem; background: #e9ecef; border-radius: 4px; }
+  .search-section { background: #fff; padding: 1rem; border-radius: 6px; margin-bottom: 1rem; border: 1px solid #dee2e6; }
+  .search-section h6 { margin-bottom: 0.75rem; font-weight: 600; }
+  .search-reset { display: inline-flex; align-items: center; gap: 0.35rem; color: #6c757d; font-size: 0.875rem; text-decoration: none; margin-left: 0.75rem; }
+  .search-reset:hover { color: #495057; }
+  .search-reset-icon { font-size: 1rem; line-height: 1; }
+</style>
+<h2 class="mb-3">{{ list_title|default('주문내역') }}</h2>
+
+<div class="sales-summary">
+  <div class="card">
+    <div class="card-body py-2">
+      <div class="small text-muted">올해 총 매출총액</div>
+      <div class="fw-bold">{{ "{:,}".format(sales_year) }}원</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body py-2">
+      <div class="small text-muted">이번달 매출총액</div>
+      <div class="fw-bold">{{ "{:,}".format(sales_month) }}원</div>
+    </div>
+  </div>
+</div>
+
+<div class="order-counts">
+  <span><strong>전체</strong> {{ cnt_total }}</span>
+  <span><strong>주문확정</strong> {{ cnt_confirmed }}</span>
+  <span><strong>견적완료</strong> {{ cnt_estimate }}</span>
+  <span><strong>납품완료</strong> {{ cnt_delivery }}</span>
+  <span><strong>청구완료</strong> {{ cnt_claim }}</span>
+</div>
+
+<div class="search-section">
+  <h6>검색조건</h6>
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-sm-6 col-md-3">
+      <label class="form-label small">거래처</label>
+      <select name="customer_id" class="form-select form-select-sm">
+        <option value="">전체</option>
+        {% for c in customers %}
+        <option value="{{ c.id }}" {{ 'selected' if customer_id == c.id else '' }}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-sm-6 col-md-2">
+      <label class="form-label small">주문상태</label>
+      <select name="status" class="form-select form-select-sm">
+        <option value="">전체</option>
+        <option value="estimate" {{ 'selected' if status == 'estimate' else '' }}>견적완료</option>
+        <option value="delivery" {{ 'selected' if status == 'delivery' else '' }}>납품완료</option>
+        <option value="claim" {{ 'selected' if status == 'claim' else '' }}>청구완료</option>
+      </select>
+    </div>
+    <div class="col-sm-6 col-md-2">
+      <label class="form-label small">기간(시작)</label>
+      <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from or '' }}">
+    </div>
+    <div class="col-sm-6 col-md-2">
+      <label class="form-label small">기간(종료)</label>
+      <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to or '' }}">
+    </div>
+    <div class="col-sm-6 col-md-2">
+      <label class="form-label small">구분</label>
+      <select name="gubun" class="form-select form-select-sm">
+        <option value="">전체</option>
+        <option value="일반" {{ 'selected' if gubun == '일반' else '' }}>일반</option>
+        <option value="관급" {{ 'selected' if gubun == '관급' else '' }}>관급</option>
+      </select>
+    </div>
+    <div class="w-100"></div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-dark btn-sm">조회</button>
+      <a href="{% if list_type %}/transactions/list/{{ list_type }}{% else %}{{ url_for('transaction_list') }}{% endif %}" class="search-reset" title="초기화"><span class="search-reset-icon" aria-hidden="true">↺</span>초기화</a>
+    </div>
+  </form>
+</div>
+
+<div class="mb-2 small text-muted">전체 {{ transactions|length }}</div>
+<table class="table table-bordered table-hover transaction-list-table">
+  <thead class="table-light">
+    <tr><th>구분</th><th>주문상태</th><th>요청 납품일자</th><th>거래처</th><th>공사명</th><th>주요 주문내역</th><th>합계금액</th><th>입력일자</th><th>수정일자</th><th>ID</th></tr>
+  </thead>
+  <tbody>
+    {% for t in transactions %}
+    <tr>
+      <td>{{ t.customer.gubun or '' }}</td>
+      <td>{% if t.claim_date %}청구완료{% elif t.delivery_date %}납품완료{% elif t.estimate_date %}견적완료{% else %}주문확정{% endif %}</td>
+      <td><a href="{{ url_for('transaction_edit', id=t.id) }}" class="text-decoration-none">{{ t.transaction_date }}</a></td>
+      <td>{{ t.customer.name or '' }}</td>
+      <td>{{ (t.project_name or '')[:25] }}{% if t.project_name and t.project_name|length > 25 %}...{% endif %}</td>
+      <td class="text-nowrap" style="max-width:200px;overflow:hidden;text-overflow:ellipsis" title="{% for ti in t.items %}{{ (ti.item_name_custom or ti.item.name) if ti.item else (ti.item_name_custom or '-') }}×{{ ti.quantity }}{% if not loop.last %}, {% endif %}{% else %}-{% endfor %}">{{ items_summaries[t.id] }}</td>
+      <td class="text-end">{{ "{:,}".format(t.total_amount) }}</td>
+      <td>{{ t.created_at.strftime('%Y-%m-%d %H:%M') if t.created_at else '' }}</td>
+      <td>{{ t.updated_at.strftime('%Y-%m-%d %H:%M') if t.updated_at else '' }}</td>
+      <td>{{ t.code or ("B{:06d}"|format(t.id)) }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="10">등록된 주문이 없습니다.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

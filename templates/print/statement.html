@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>거래명세서</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    @page { size: A4; margin: 10mm; }
+    body { background-color: unset; background: unset; text-align: center; }
+    @media print {
+      .no-print { display: none !important; }
+      body { margin: 0; padding: 0; background-color: unset; background: unset; text-align: center; }
+      .print-area { page-break-inside: avoid; overflow: hidden; }
+      .statement-sheet { overflow: hidden !important; }
+      .statement-items { width: 100% !important; table-layout: fixed !important; }
+      .statement-items td:nth-child(9), .statement-items th:nth-child(9) { overflow: hidden !important; }
+      .statement-footer { overflow: hidden !important; max-width: 100% !important; }
+      .statement-footer-table { width: 100% !important; max-width: 100% !important; table-layout: fixed !important; }
+      .statement-footer-table .footer-col-1 { width: 4% !important; }
+      .statement-footer-table .footer-col-2 { width: 15% !important; }
+      .statement-footer-table .footer-col-3 { width: 4% !important; }
+      .statement-footer-table .footer-col-4 { width: 15% !important; }
+      .statement-footer-table .footer-col-5 { width: 4% !important; }
+      .statement-footer-table .footer-col-6 { width: 15% !important; }
+      .statement-footer-table .footer-col-7 { width: 4% !important; }
+      .statement-footer-table .footer-col-8 { width: 12% !important; }
+      .statement-footer-table .footer-col-9 { width: 4% !important; }
+      .statement-footer-table .footer-col-10 { width: 14% !important; overflow: hidden !important; }
+      .statement-footer-table td { padding: 0.5mm 1.5mm !important; line-height: 1 !important; }
+      .statement-footer-table .footer-col-1,
+      .statement-footer-table .footer-col-3,
+      .statement-footer-table .footer-col-5,
+      .statement-footer-table .footer-col-7,
+      .statement-footer-table .footer-col-9 { font-size: 90% !important; }
+      .statement-items tbody tr { height: 19.5px !important; }
+      .statement-items tbody td { padding: 1.3px !important; }
+      .statement-footer-table td { padding: 0.65mm 1.95mm !important; }
+    }
+    .print-area { max-width: 210mm; margin: 0 auto; padding: 8mm; font-family: "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; }
+    .statement-header { display: flex; align-items: center; border-bottom: 2px solid #98d98e; min-height: 56px; margin-bottom: -2px; }
+    .statement-date { flex: 0 0 20%; font-size: 0.6rem; height: 56px; display: flex; flex-direction: column; border: 1px solid #98d98e; }
+    .statement-date-cell { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; padding: 2mm; border-bottom: 1px solid #98d98e; min-height: 0; }
+    .statement-date-cell:not(:first-child) { margin-top: -2px; }
+    .statement-date-cell:last-child { border-bottom: none; }
+    .statement-date-cell:first-child { font-weight: bold; color: #2d7a3e; }
+    .statement-title { flex: 0 0 60%; height: 56px; padding: 11px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; letter-spacing: 0.2em; position: relative; text-align: center; color: #2d7a3e; }
+    .statement-copy { position: absolute; left: 282px; top: 25px; font-size: 0.765rem; color: #2d7a3e; }
+    .statement-pageno { flex: 0 0 20%; font-size: 0.6rem; height: 56px; display: flex; flex-direction: column; border: 1px solid #98d98e; }
+    .statement-pageno-cell { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; padding: 2mm; border-bottom: 1px solid #98d98e; min-height: 0; }
+    .statement-pageno-cell:not(:first-child) { margin-top: -1px; }
+    .statement-pageno-cell:last-child { border-bottom: none; }
+    .statement-sheet { border: 1px solid #98d98e; border-top-width: 2px; border-left-width: 2px; margin-bottom: 8mm; page-break-inside: avoid; overflow: hidden; }
+    .statement-body { display: flex; height: 45px; min-height: 36mm; margin-bottom: -2px; }
+    .statement-side { width: 3mm; min-width: 3mm; writing-mode: vertical-rl; text-orientation: mixed;
+      display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 2.5mm;
+      border-right: 1px solid #98d98e; padding: 2mm; color: #2d7a3e; }
+    .statement-info { flex: 1; display: flex; min-width: 0; border-right: 1px solid #98d98e; }
+    .statement-info:last-of-type { border-right: none; }
+    .statement-recipient { flex: 1; padding: 0; font-size: 2.2mm; border-right: 1px solid #98d98e; display: flex; }
+    .statement-supplier { flex: 1; padding: 0; font-size: 2.2mm; border-right: none; display: flex; min-width: 0; }
+    .statement-recipient-table { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; }
+    .statement-recipient-table tr { height: 25%; }
+    .statement-recipient-table td { border: 1px solid #98d98e; padding: 0; vertical-align: middle; }
+    .statement-recipient-table td:first-child { width: 42px; font-weight: bold; font-size: 2.64mm; color: #2d7a3e; }
+    .statement-recipient-table td.recipient-value { width: auto; font-size: 2.86mm; }
+    .statement-recipient-table td.recipient-geuha { width: 10%; text-align: center; font-size: 2.64mm; color: #2d7a3e; }
+    .statement-recipient-table tr:first-child td.recipient-geuha { border-bottom: 2px solid #98d98e; }
+    .statement-supplier-table { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; }
+    .statement-supplier-table tr { height: 25%; }
+    .statement-supplier-table td { border: 1px solid #98d98e; padding: 0; vertical-align: middle; font-size: 2.2mm; }
+    .statement-supplier-table td.supplier-label { width: 12%; font-weight: bold; font-size: 2.64mm; color: #2d7a3e; }
+    .statement-supplier-table td.supplier-value { width: 38%; font-size: 2.86mm; }
+    .statement-supplier-table td:nth-child(2) { width: 39%; }
+    .statement-supplier-table td:last-child { width: 37%; }
+    .statement-info-row { display: flex; margin-bottom: 1.5mm; }
+    .statement-info-label { width: 22mm; flex-shrink: 0; }
+    .statement-info-value { flex: 1; overflow: hidden; }
+    .statement-items { width: 100%; border-collapse: collapse; font-size: 2.2mm; table-layout: fixed; margin-bottom: -2px; overflow: hidden; }
+    .statement-items th, .statement-items td { border: 1px solid #98d98e; overflow: hidden; }
+    .statement-items th { padding: 0.75mm; background: #f5f5f5; font-weight: bold; text-align: center; line-height: 1.2; color: #2d7a3e; border-top: 2px solid #98d98e; border-bottom: 2px solid #98d98e; }
+    .statement-items tbody td { padding: 1px; overflow: hidden; word-wrap: break-word; }
+    .statement-items tbody tr { height: 15px; }
+    .statement-items td:nth-child(1), .statement-items td:nth-child(2), .statement-items td:nth-child(3), .statement-items td:nth-child(4), .statement-items td:nth-child(5) { text-align: center; }
+    .statement-items td:nth-child(6), .statement-items td:nth-child(7), .statement-items td:nth-child(8) { text-align: right; }
+    .statement-items td:nth-child(9) { text-align: left; }
+    .statement-footer { display: flex; margin-top: -2px; margin-bottom: -2px; }
+    .statement-footer-table { width: 100%; border-collapse: collapse; font-size: 2.2mm; table-layout: fixed; }
+    .statement-footer-table td { border: 1px solid #98d98e; padding: 1mm 2mm; vertical-align: middle; line-height: 1; }
+    .statement-footer-table .footer-col-1 { width: 32px; font-weight: bold; color: #2d7a3e; }
+    .statement-footer-table .footer-col-2 { width: 118px; font-size: 2.86mm; }
+    .statement-footer-table .footer-col-3 { width: 32px; font-weight: bold; color: #2d7a3e; }
+    .statement-footer-table .footer-col-4 { width: 118px; font-size: 2.86mm; }
+    .statement-footer-table .footer-col-5 { width: 33.7px; font-weight: bold; color: #2d7a3e; }
+    .statement-footer-table .footer-col-6 { width: 117.3px; font-size: 2.86mm; }
+    .statement-footer-table .footer-col-7 { width: 32px; font-weight: bold; color: #2d7a3e; }
+    .statement-footer-table .footer-col-8 { width: 95px; font-size: 2.86mm; }
+    .statement-footer-table .footer-col-9 { width: 32px; font-weight: bold; color: #2d7a3e; }
+    .statement-footer-table .footer-col-10 { width: 118px; font-size: 2.86mm; }
+    .statement-col-월 { width: 2.2%; }
+    .statement-col-일 { width: 2.2%; }
+    .statement-col-품목 { width: 22.9%; }
+    .statement-col-규격 { width: 18.3%; }
+    .statement-col-수량 { width: 4.4%; }
+    .statement-col-단가 { width: 15.1%; }
+    .statement-col-공급가액 { width: 14.9%; }
+    .statement-col-세액 { width: 14.9%; }
+    .statement-col-비고 { width: 5%; min-width: 0; }
+  </style>
+</head>
+<body>
+  <div class="print-area">
+    {% for copy in ['공급자용', '공급받는자용'] %}
+    <div class="statement-sheet">
+      <div class="statement-header">
+        <div class="statement-date">
+          <div class="statement-date-cell">거래일자</div>
+          <div class="statement-date-cell">{{ transaction.transaction_date.year }}.{{ transaction.transaction_date.month }}.{{ transaction.transaction_date.day }}</div>
+        </div>
+        <div class="statement-title"><span>거래명세서</span><span class="statement-copy">({{ copy }})</span></div>
+        <div class="statement-pageno">
+          <div class="statement-pageno-cell"></div>
+          <div class="statement-pageno-cell">{{ loop.index }} / 2</div>
+        </div>
+      </div>
+      <div class="statement-body">
+        <div class="statement-side">공급받는자</div>
+        <div class="statement-info">
+          <div class="statement-recipient">
+            <table class="statement-recipient-table">
+              <tr><td>상호<br>(법인명)</td><td class="recipient-value">{{ customer.name or '' }}</td><td class="recipient-geuha">귀하</td></tr>
+              <tr><td>사업장<br>주소</td><td class="recipient-value" colspan="2">{{ customer.address or '' }}</td></tr>
+              <tr><td>전화</td><td class="recipient-value" colspan="2">{{ customer.phone or '' }}</td></tr>
+              <tr><td>합계금액</td><td class="recipient-value" colspan="2">₩{{ "{:,}".format(total_amount) }}</td></tr>
+            </table>
+          </div>
+          <div class="statement-side">공급자</div>
+          <div class="statement-supplier">
+            <table class="statement-supplier-table">
+              <colgroup><col style="width:12%"><col style="width:39%"><col style="width:12%"><col style="width:37%"></colgroup>
+              <tr><td class="supplier-label">등록번호</td><td class="supplier-value" colspan="3">{{ supplier.biz_no or '' }}</td></tr>
+              <tr><td class="supplier-label">상호<br>(법인명)</td><td class="supplier-value">{{ supplier.name or '' }}</td><td class="supplier-label">성명</td><td class="supplier-value">{{ supplier.ceo or '' }}</td></tr>
+              <tr><td class="supplier-label">사업장<br>주소</td><td class="supplier-value" colspan="3">{{ supplier.address or '' }}</td></tr>
+              <tr><td class="supplier-label">전화</td><td class="supplier-value">{{ supplier.phone or '' }}</td><td class="supplier-label">팩스</td><td class="supplier-value">{{ supplier.fax or '' }}</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <table class="statement-items">
+        <colgroup>
+          <col class="statement-col-월"><col class="statement-col-일"><col class="statement-col-품목"><col class="statement-col-규격"><col class="statement-col-수량">
+          <col class="statement-col-단가"><col class="statement-col-공급가액"><col class="statement-col-세액"><col class="statement-col-비고">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>월</th><th>일</th><th>품목</th><th>규격</th><th>수량</th><th>단가</th><th>공급가액</th><th>세액</th><th>비고</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td>{{ transaction.transaction_date.month }}</td>
+            <td>{{ transaction.transaction_date.day }}</td>
+            <td>{{ r.name or '' }}</td>
+            <td>{{ r.get('spec') or '' }}</td>
+            <td>{{ r.quantity or '' }}</td>
+            <td>{{ "{:,}".format(r.get('unit_price') or 0) }}</td>
+            <td>{{ "{:,}".format(r.get('supply_amount') or 0) }}</td>
+            <td>{{ "{:,}".format(r.get('vat') or 0) }}</td>
+            <td></td>
+          </tr>
+          {% endfor %}
+          {% set blank_count = [0, 10 - rows|length]|max %}
+          {% for _ in range(blank_count) %}
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="statement-footer">
+        <table class="statement-footer-table">
+          <tr>
+            <td class="footer-col-1">공금<br>가액</td>
+            <td class="footer-col-2">{{ "{:,}".format(total_supply) }}</td>
+            <td class="footer-col-3">세액</td>
+            <td class="footer-col-4">{{ "{:,}".format(total_vat) }}</td>
+            <td class="footer-col-5">합계<br>금액</td>
+            <td class="footer-col-6">{{ "{:,}".format(total_amount) }}</td>
+            <td class="footer-col-7">미수<br>금</td>
+            <td class="footer-col-8"></td>
+            <td class="footer-col-9">인수<br>자</td>
+            <td class="footer-col-10"></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</body>
+</html>

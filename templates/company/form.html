@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}회사정보{% endblock %}
+{% block content %}
+<form method="post" enctype="multipart/form-data">
+  <h2 class="mb-2">회사정보</h2>
+  <div class="page-actions mb-3">
+    <button type="submit" class="btn btn-primary">저장</button>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <div class="mb-3">
+        <label class="form-label">사업자등록번호</label>
+        <input type="text" name="biz_no" class="form-control" value="{{ company.biz_no or '' }}" placeholder="000-00-00000">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">상호</label>
+        <input type="text" name="name" class="form-control" value="{{ company.name or '' }}" placeholder="회사명">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">대표자</label>
+        <input type="text" name="ceo" class="form-control" value="{{ company.ceo or '' }}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">주소</label>
+        <input type="text" name="address" class="form-control" value="{{ company.address or '' }}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">전화</label>
+        <input type="text" name="phone" class="form-control" value="{{ company.phone or '' }}" placeholder="02-1234-5678">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">팩스</label>
+        <input type="text" name="fax" class="form-control" value="{{ company.fax or '' }}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">계좌번호</label>
+        <input type="text" name="account_no" class="form-control" value="{{ company.account_no or '' }}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">예금주</label>
+        <input type="text" name="account_holder" class="form-control" value="{{ company.account_holder or '' }}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">은행</label>
+        <input type="text" name="bank" class="form-control" value="{{ company.bank or '' }}" placeholder="예: 국민은행">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">업태/종목</label>
+        <input type="text" name="business_type" class="form-control" value="{{ company.business_type or '' }}" placeholder="예: 도매/자기타일/품목/스틸그레이팅">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">담당자/인수자</label>
+        <input type="text" name="contact" class="form-control" value="{{ company.contact or '' }}">
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="mb-3">
+        <label class="form-label">직인 (그림파일)</label>
+        {% if company.stamp_path %}
+        <div class="mb-2">
+          <img src="{{ url_for('company_stamp') }}" alt="직인" class="img-thumbnail" style="max-height:120px;">
+        </div>
+        {% endif %}
+        <input type="file" name="stamp" class="form-control" accept="image/*">
+        <small class="text-muted">PNG, JPG 등 이미지 파일 (기존 직인 유지하려면 비워두세요)</small>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+(function() {
+  document.querySelector('form').addEventListener('submit', function(e) {
+    if (!confirm('저장할까요?')) e.preventDefault();
+  });
+})();
+</script>
+{% endblock %}

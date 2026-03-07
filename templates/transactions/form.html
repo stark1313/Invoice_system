@@ -1,0 +1,717 @@
+{% extends "base.html" %}
+{% block title %}{{ '주문 상세내역' if transaction else '주문 입력' }}{% endblock %}
+{% block content %}
+<style>
+  .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .detail-tabs { margin-top: 1.5rem; margin-bottom: 0; border-bottom: 1px solid #dee2e6; }
+  .detail-tabs .nav-link { color: #495057; padding: 0.5rem 1rem; }
+  .detail-tabs .nav-link.active { font-weight: 600; color: #0d6efd; border-bottom: 2px solid #0d6efd; }
+  .tab-edit-btn { position: absolute; top: 0; right: 0; }
+  .tab-content-wrap { position: relative; padding-top: 1rem; }
+  .form-readonly input, .form-readonly select, .form-readonly .form-control, .form-readonly .form-check-input { background: #e9ecef; pointer-events: none; }
+  .doc-date-display { min-height: 38px; padding: 0.375rem 0.75rem; background: #e9ecef; border-radius: 0.25rem; }
+  .doc-complete-badge { display: inline-block; width: 1.2em; font-weight: bold; color: #198754; }
+  .form-readonly .item-row-check { pointer-events: none; }
+  .form-readonly #addRow, .form-readonly #btnDeleteItems, .form-readonly #btnSave { display: none !important; }
+</style>
+<div class="detail-header">
+  <h2 class="mb-0">{{ '주문 상세내역' if transaction else '주문 입력' }}</h2>
+</div>
+
+{% if transaction %}
+{% set is_gwangeup = (transaction.customer.gubun or '') == '관급' %}
+<ul class="nav nav-tabs detail-tabs" id="detailTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="tab-order" data-bs-toggle="tab" data-bs-target="#pane-order" type="button" role="tab">상세내역</button>
+  </li>
+  {% if is_gwangeup %}
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-gyeonjeok" data-bs-toggle="tab" data-bs-target="#pane-gyeonjeok" type="button" role="tab">견적서</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-napum" data-bs-toggle="tab" data-bs-target="#pane-napum" type="button" role="tab">납품서</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-cheonggu" data-bs-toggle="tab" data-bs-target="#pane-cheonggu" type="button" role="tab">청구서</button>
+  </li>
+  {% else %}
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-statement" data-bs-toggle="tab" data-bs-target="#pane-statement" type="button" role="tab">거래명세서</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-tax" data-bs-toggle="tab" data-bs-target="#pane-tax" type="button" role="tab">세금계산서</button>
+  </li>
+  {% endif %}
+</ul>
+{% endif %}
+
+<div class="tab-content-wrap">
+  <div class="order-actions d-flex justify-content-end align-items-center gap-2 mb-3">
+    <div id="btnDetailGroup">
+    {% if transaction and not (is_editable|default(false)) %}
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('transaction_edit', id=transaction.id) }}?edit=1">수정</a>
+    {% else %}
+    <button type="button" class="btn btn-outline-primary btn-sm" id="addRow">추가</button>
+    <button type="button" class="btn btn-outline-danger btn-sm" id="btnDeleteItems">삭제</button>
+    <button type="submit" form="transForm" class="btn btn-primary btn-sm" id="btnSave">저장</button>
+    {% if transaction %}<a class="btn btn-outline-secondary btn-sm" href="{{ url_for('transaction_edit', id=transaction.id) }}">취소</a>{% endif %}
+    {% endif %}
+    </div>
+    <button type="button" class="btn btn-primary btn-sm" id="btnDocPrint" style="display:none">인쇄</button>
+    <a class="btn btn-secondary btn-sm" href="{{ url_for('transaction_list') }}">목록</a>
+  </div>
+
+  <div class="tab-content mt-3" id="detailTabContent">
+    <div class="tab-pane fade show active" id="pane-order" role="tabpanel">
+      <form method="post" id="transForm" class="{% if transaction and not (is_editable|default(false)) %}form-readonly{% endif %}">
+        <div class="row mb-3">
+          <div class="col-md-2">
+            <label class="form-label">구분</label>
+            <select id="gubunFilter" class="form-select" {% if transaction and not (is_editable|default(false)) %}disabled{% endif %}>
+              <option value="관급" {{ 'selected' if transaction and (transaction.customer.gubun or '일반') == '관급' else '' }}>관급</option>
+              <option value="일반" {{ 'selected' if not transaction or (transaction.customer.gubun or '일반') != '관급' else '' }}>일반</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">거래처 *</label>
+            <select name="customer_id" id="customerSelect" class="form-select" required {% if transaction and not (is_editable|default(false)) %}disabled{% endif %}>
+              <option value="">선택</option>
+              {% for c in customers %}
+              <option value="{{ c.id }}" data-gubun="{{ c.gubun or '일반' }}" {{ 'selected' if transaction and transaction.customer_id == c.id else '' }}>{{ c.name }}</option>
+              {% endfor %}
+            </select>
+            {% if transaction and not (is_editable|default(false)) %}<input type="hidden" name="customer_id" value="{{ transaction.customer_id }}">{% endif %}
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">요청 납품일자 *</label>
+            <input type="date" name="transaction_date" class="form-control" required
+                   value="{{ transaction.transaction_date.isoformat() if transaction else default_date }}" {% if transaction and not (is_editable|default(false)) %}readonly{% endif %}>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">비고</label>
+            <input type="text" name="memo" class="form-control" value="{{ transaction.memo if transaction else '' }}" {% if transaction and not (is_editable|default(false)) %}readonly{% endif %}>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">공사명</label>
+          <input type="text" name="project_name" class="form-control" value="{{ transaction.project_name if transaction else '' }}" placeholder="견적서에 표시될 공사명" {% if transaction and not (is_editable|default(false)) %}readonly{% endif %}>
+        </div>
+
+        {% if transaction %}
+        <div class="row mb-3" id="docStatusSection">
+          <div class="col-md-4">
+            <label class="form-label">견적일자</label>
+            {% if is_editable|default(false) %}
+            <input type="date" name="estimate_date" id="estimateDate" class="form-control" value="{{ transaction.estimate_date.isoformat() if transaction.estimate_date else '' }}">
+            {% else %}
+            <div class="doc-date-display" id="estimateDateDisplay">{{ transaction.estimate_date.strftime('%Y-%m-%d') if transaction.estimate_date else '' }}</div>
+            <input type="hidden" name="estimate_date" id="estimateDate" value="{{ transaction.estimate_date.isoformat() if transaction.estimate_date else '' }}">
+            {% endif %}
+            {% if is_editable|default(false) %}
+            <label class="form-check form-check-inline mt-1"><input type="checkbox" name="estimate_complete" id="estimateComplete" value="1" class="form-check-input doc-complete-cb" {% if transaction.estimate_date %}checked{% endif %}> 견적완료</label>
+            {% else %}
+            <span class="form-check form-check-inline mt-1"><span class="doc-complete-badge" id="estimateCompleteBadge">{{ '✓' if transaction.estimate_date else '—' }}</span> 견적완료</span>
+            {% endif %}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">납품일자</label>
+            {% if is_editable|default(false) %}
+            <input type="date" name="delivery_date" id="deliveryDate" class="form-control" value="{{ transaction.delivery_date.isoformat() if transaction.delivery_date else '' }}">
+            {% else %}
+            <div class="doc-date-display" id="deliveryDateDisplay">{{ transaction.delivery_date.strftime('%Y-%m-%d') if transaction.delivery_date else '' }}</div>
+            <input type="hidden" name="delivery_date" id="deliveryDate" value="{{ transaction.delivery_date.isoformat() if transaction.delivery_date else '' }}">
+            {% endif %}
+            {% if is_editable|default(false) %}
+            <label class="form-check form-check-inline mt-1"><input type="checkbox" name="delivery_complete" id="deliveryComplete" value="1" class="form-check-input doc-complete-cb" {% if transaction.delivery_date %}checked{% endif %}> 납품완료</label>
+            {% else %}
+            <span class="form-check form-check-inline mt-1"><span class="doc-complete-badge" id="deliveryCompleteBadge">{{ '✓' if transaction.delivery_date else '—' }}</span> 납품완료</span>
+            {% endif %}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">청구일자</label>
+            {% if is_editable|default(false) %}
+            <input type="date" name="claim_date" id="claimDate" class="form-control" value="{{ transaction.claim_date.isoformat() if transaction.claim_date else '' }}">
+            {% else %}
+            <div class="doc-date-display" id="claimDateDisplay">{{ transaction.claim_date.strftime('%Y-%m-%d') if transaction.claim_date else '' }}</div>
+            <input type="hidden" name="claim_date" id="claimDate" value="{{ transaction.claim_date.isoformat() if transaction.claim_date else '' }}">
+            {% endif %}
+            {% if is_editable|default(false) %}
+            <label class="form-check form-check-inline mt-1"><input type="checkbox" name="claim_complete" id="claimComplete" value="1" class="form-check-input doc-complete-cb" {% if transaction.claim_date %}checked{% endif %}> 청구완료</label>
+            {% else %}
+            <span class="form-check form-check-inline mt-1"><span class="doc-complete-badge" id="claimCompleteBadge">{{ '✓' if transaction.claim_date else '—' }}</span> 청구완료</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        <h5 class="mt-4">품목</h5>
+        <input type="hidden" name="vat_excluded" id="vatExcluded" value="{{ '1' if vat_excluded_initial else '0' }}">
+        <table class="table table-bordered" id="itemTable">
+          <thead class="table-light">
+            <tr>
+              <th style="width:40px"></th>
+              <th>품목</th>
+              <th style="width:90px">규격</th>
+              <th style="width:70px">단위</th>
+              <th style="width:90px">수량</th>
+              <th style="width:110px">단가</th>
+              <th style="width:110px">공급가액</th>
+              <th style="width:90px">세액</th>
+              <th style="width:110px">합계</th>
+            </tr>
+          </thead>
+          <tbody id="itemBody">
+            {% if transaction and transaction.items %}
+            {% for ti in transaction.items %}
+            <tr data-item-id="{{ ti.item_id }}" data-is-direct="{{ '1' if ti.item_id == direct_item.id else '0' }}">
+              <td><input type="checkbox" class="form-check-input item-row-check" aria-label="선택"></td>
+              <td>
+                <select name="item_id[]" class="form-select form-select-sm item-select" {% if transaction and not (is_editable|default(false)) %}disabled{% endif %}>
+                  <option value="{{ direct_item.id }}" data-unit="EA" data-spec="" data-price="0" {{ 'selected' if ti.item_id == direct_item.id else '' }}>직접입력</option>
+                  {% for i in items %}
+                  {% if i.id != direct_item.id %}
+                  <option value="{{ i.id }}" data-unit="{{ i.unit }}" data-spec="{{ i.spec or '' }}" data-price="{{ i.unit_price }}" {{ 'selected' if ti.item_id == i.id else '' }}>{{ i.name }}</option>
+                  {% endif %}
+                  {% endfor %}
+                </select>
+                <input type="text" name="item_name_custom[]" class="form-control form-control-sm mt-1 item-name-custom" placeholder="품목명 입력" value="{{ ti.item_name_custom or '' }}" style="{{ 'display:none' if ti.item_id != direct_item.id else '' }}" {% if transaction and not (is_editable|default(false)) %}readonly{% endif %}>
+              </td>
+              <td class="spec-cell">{% if ti.item_id == direct_item.id %}<input type="text" name="spec_custom[]" class="form-control form-control-sm" placeholder="규격" value="{{ ti.spec_custom or '' }}" {% if transaction and not (is_editable|default(false)) %}readonly{% endif %}>{% else %}<span class="spec-display">{{ (ti.item.spec if ti.item else '') or '-' }}</span>{% endif %}</td>
+              <td class="unit-cell">{% if ti.item_id == direct_item.id %}<input type="text" name="unit_custom[]" class="form-control form-control-sm" placeholder="단위" value="{{ ti.unit_custom or 'EA' }}" {% if transaction and not (is_editable|default(false)) %}readonly{% endif %}>{% else %}<span class="unit-display">{{ (ti.item.unit if ti.item else 'EA') or 'EA' }}</span>{% endif %}</td>
+              <td><input type="number" name="quantity[]" class="form-control form-control-sm qty" min="1" value="{{ ti.quantity }}" {% if transaction and not (is_editable|default(false)) %}readonly{% endif %}></td>
+              <td><input type="number" name="unit_price[]" class="form-control form-control-sm unit-price-input" min="0" value="{{ ti.unit_price }}" {% if transaction and not (is_editable|default(false)) %}readonly{% endif %}></td>
+              <td class="supply">{{ "{:,}".format(ti.supply_amount) }}</td>
+              <td class="vat">{{ "{:,}".format(ti.vat) }}</td>
+              <td class="total">{{ "{:,}".format(ti.total) }}</td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            <tr data-item-id="" data-is-direct="0">
+              <td><input type="checkbox" class="form-check-input item-row-check" aria-label="선택"></td>
+              <td>
+                <select name="item_id[]" class="form-select form-select-sm item-select">
+                  <option value="">선택</option>
+                  <option value="{{ direct_item.id }}" data-unit="EA" data-spec="" data-price="0">직접입력</option>
+                  {% for i in items %}
+                  {% if i.id != direct_item.id %}
+                  <option value="{{ i.id }}" data-unit="{{ i.unit }}" data-spec="{{ i.spec or '' }}" data-price="{{ i.unit_price }}">{{ i.name }}</option>
+                  {% endif %}
+                  {% endfor %}
+                </select>
+                <input type="text" name="item_name_custom[]" class="form-control form-control-sm mt-1 item-name-custom" placeholder="품목명 입력" style="display:none">
+              </td>
+              <td class="spec-cell"><span class="spec-display">-</span></td>
+              <td class="unit-cell"><span class="unit-display">EA</span></td>
+              <td><input type="number" name="quantity[]" class="form-control form-control-sm qty" min="1" value="1"></td>
+              <td><input type="number" name="unit_price[]" class="form-control form-control-sm unit-price-input" min="0" value="0"></td>
+              <td class="supply">0</td>
+              <td class="vat">0</td>
+              <td class="total">0</td>
+            </tr>
+            {% endif %}
+          </tbody>
+          <tfoot class="table-light">
+            <tr>
+              <td colspan="6" class="text-end"><strong>합계</strong></td>
+              <td id="sumSupply">0</td>
+              <td id="sumVat">0</td>
+              <td id="sumTotal">0</td>
+            </tr>
+          </tfoot>
+        </table>
+      </form>
+    </div>
+
+    {% if transaction %}
+    {% if is_gwangeup %}
+    <div class="tab-pane fade" id="pane-gyeonjeok" role="tabpanel">
+      <iframe id="iframe-gyeonjeok" src="{{ url_for('gyeonjeok_print', id=transaction.id) }}?popup=0" data-base="{{ url_for('gyeonjeok_print', id=transaction.id) }}?popup=0" style="width:100%; height:70vh; border:1px solid #dee2e6; border-radius:4px;"></iframe>
+    </div>
+    <div class="tab-pane fade" id="pane-napum" role="tabpanel">
+      <iframe id="iframe-napum" src="{{ url_for('napum_print', id=transaction.id) }}?popup=0" data-base="{{ url_for('napum_print', id=transaction.id) }}?popup=0" style="width:100%; height:70vh; border:1px solid #dee2e6; border-radius:4px;"></iframe>
+    </div>
+    <div class="tab-pane fade" id="pane-cheonggu" role="tabpanel">
+      <iframe id="iframe-cheonggu" src="{{ url_for('cheonggu_print', id=transaction.id) }}?popup=0" data-base="{{ url_for('cheonggu_print', id=transaction.id) }}?popup=0" style="width:100%; height:70vh; border:1px solid #dee2e6; border-radius:4px;"></iframe>
+    </div>
+    {% else %}
+    <div class="tab-pane fade" id="pane-statement" role="tabpanel">
+      <iframe id="iframe-statement" src="{{ url_for('statement_print', id=transaction.id) }}?popup=0" data-base="{{ url_for('statement_print', id=transaction.id) }}?popup=0" style="width:100%; height:70vh; border:1px solid #dee2e6; border-radius:4px;"></iframe>
+    </div>
+    <div class="tab-pane fade" id="pane-tax" role="tabpanel">
+      <iframe id="iframe-tax" src="{{ url_for('tax_invoice_print', id=transaction.id) }}?popup=0" data-base="{{ url_for('tax_invoice_print', id=transaction.id) }}?popup=0" style="width:100%; height:70vh; border:1px solid #dee2e6; border-radius:4px;"></iframe>
+    </div>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+{% if transaction %}
+<div class="modal fade" id="docPrintModal" tabindex="-1" aria-labelledby="docPrintModalLabel" aria-hidden="true">
+  <div class="modal-dialog" style="max-width:400px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="docPrintModalLabel">인쇄 옵션</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">직인표시 여부</label>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="docPrintStamp" id="docPrintStampYes" value="1">
+            <label class="form-check-label" for="docPrintStampYes">예</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="docPrintStamp" id="docPrintStampNo" value="0" checked>
+            <label class="form-check-label" for="docPrintStampNo">아니요</label>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" id="docPrintCompleteLabel">견적완료 여부</label>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="docPrintComplete" id="docPrintCompleteYes" value="1">
+            <label class="form-check-label" for="docPrintCompleteYes">예</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="docPrintComplete" id="docPrintCompleteNo" value="0" checked>
+            <label class="form-check-label" for="docPrintCompleteNo">아니요</label>
+          </div>
+        </div>
+        <div class="mb-3" id="docPrintDateSection" style="display:none">
+          <label class="form-label" id="docPrintDateLabel">완료 날짜</label>
+          <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+            <div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="docPrintDateType" id="docPrintDateToday" value="today" checked>
+                <label class="form-check-label" for="docPrintDateToday">오늘</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="docPrintDateType" id="docPrintDateCustom" value="custom">
+                <label class="form-check-label" for="docPrintDateCustom">직접입력</label>
+              </div>
+            </div>
+            <input type="date" class="form-control form-control-sm" id="docPrintDateInput" style="max-width:140px;display:none">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+        <button type="button" class="btn btn-primary" id="docPrintModalConfirm">인쇄</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<script>
+(function initTabButtons() {
+  var detailTabs = document.getElementById('detailTabs');
+  var btnDetailGroup = document.getElementById('btnDetailGroup');
+  var btnDocPrint = document.getElementById('btnDocPrint');
+  if (!detailTabs || !btnDetailGroup || !btnDocPrint) return;
+  var docComplete = {
+    gyeonjeok: {{ 'true' if transaction and transaction.estimate_date else 'false' }},
+    napum: {{ 'true' if transaction and transaction.delivery_date else 'false' }},
+    cheonggu: {{ 'true' if transaction and transaction.claim_date else 'false' }}
+  };
+  var docCompleteMsg = { napum: '견적완료 후 인쇄해주시기 바랍니다.', cheonggu: '납품완료 후 인쇄해주시기 바랍니다.' };
+  var docCompleteConfirmMsg = { gyeonjeok: '견적완료로 처리할까요?', napum: '납품완료로 처리할까요?', cheonggu: '청구완료로 처리할까요?' };
+  var txId = {{ transaction.id if transaction else 0 }};
+  function getActiveDocIframe() {
+    var activeTab = detailTabs.querySelector('.nav-link.active');
+    if (!activeTab) return null;
+    var paneId = (activeTab.getAttribute('data-bs-target') || '').replace('#', '');
+    var pane = document.getElementById(paneId);
+    return pane ? pane.querySelector('iframe') : null;
+  }
+  function updateTabButtons() {
+    var activeTab = detailTabs.querySelector('.nav-link.active');
+    var isOrderTab = activeTab && activeTab.id === 'tab-order';
+    var isDocTab = activeTab && ['tab-gyeonjeok', 'tab-napum', 'tab-cheonggu', 'tab-statement', 'tab-tax'].indexOf(activeTab.id) >= 0;
+    btnDetailGroup.style.display = isOrderTab ? '' : 'none';
+    btnDocPrint.style.display = isDocTab ? '' : 'none';
+  }
+  detailTabs.querySelectorAll('.nav-link').forEach(function(link) {
+    link.addEventListener('shown.bs.tab', updateTabButtons);
+  });
+  updateTabButtons();
+  var docPrintModal = document.getElementById('docPrintModal');
+  var pendingPrint = null;
+  btnDocPrint.addEventListener('click', function() {
+    var activeTab = detailTabs.querySelector('.nav-link.active');
+    var tabId = activeTab ? activeTab.id : '';
+    var isGyeonjeokNapumCheonggu = ['tab-gyeonjeok', 'tab-napum', 'tab-cheonggu'].indexOf(tabId) >= 0;
+    var isStatement = tabId === 'tab-statement';
+    var isTax = tabId === 'tab-tax';
+    var docKey = tabId === 'tab-gyeonjeok' ? 'gyeonjeok' : (tabId === 'tab-napum' ? 'napum' : (tabId === 'tab-cheonggu' ? 'cheonggu' : (tabId === 'tab-statement' ? 'statement' : (tabId === 'tab-tax' ? 'tax' : null))));
+    if (docKey === 'napum' && !docComplete.gyeonjeok) {
+      alert(docCompleteMsg.napum);
+      return;
+    }
+    if ((docKey === 'cheonggu' || docKey === 'tax') && !docComplete.napum) {
+      alert(docCompleteMsg.cheonggu);
+      return;
+    }
+    var iframe = getActiveDocIframe();
+    if (!iframe || !iframe.contentWindow) return;
+    if ((isGyeonjeokNapumCheonggu && docKey) || (isStatement && docKey === 'statement') || (isTax && docKey === 'tax')) {
+      if (docPrintModal) {
+      var completeLabels = { gyeonjeok: '견적완료', napum: '납품완료', cheonggu: '청구완료', statement: '납품완료', tax: '청구완료' };
+      var docTitles = { gyeonjeok: '견적서', napum: '납품서', cheonggu: '청구서', statement: '거래명세서', tax: '세금계산서' };
+      var titleEl = document.getElementById('docPrintModalLabel');
+      if (titleEl) titleEl.textContent = (docKey === 'statement' ? '거래명세서' : docKey === 'tax' ? '세금계산서' : docTitles[docKey]) + ' 인쇄';
+      var labelEl = document.getElementById('docPrintCompleteLabel');
+      if (labelEl) labelEl.textContent = completeLabels[docKey] + ' 여부';
+      var dateLabelEl = document.getElementById('docPrintDateLabel');
+      if (dateLabelEl) dateLabelEl.textContent = completeLabels[docKey] + ' 날짜';
+      document.getElementById('docPrintCompleteNo').checked = true;
+      document.getElementById('docPrintDateSection').style.display = 'none';
+      document.getElementById('docPrintDateToday').checked = true;
+      var dateInp = document.getElementById('docPrintDateInput');
+      if (dateInp) dateInp.style.display = 'none';
+      document.getElementById('docPrintDateInput').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('docPrintStampNo').checked = true;
+      pendingPrint = { iframe: iframe, docKey: docKey };
+      new bootstrap.Modal(docPrintModal).show();
+      }
+    } else {
+      iframe.contentWindow.print();
+    }
+  });
+  document.getElementById('docPrintCompleteYes')?.addEventListener('change', function() {
+    document.getElementById('docPrintDateSection').style.display = this.checked ? 'block' : 'none';
+  });
+  document.getElementById('docPrintCompleteNo')?.addEventListener('change', function() {
+    document.getElementById('docPrintDateSection').style.display = this.checked ? 'none' : 'block';
+  });
+  document.getElementById('docPrintDateCustom')?.addEventListener('change', function() {
+    var dateInp = document.getElementById('docPrintDateInput');
+    if (dateInp) dateInp.style.display = this.checked ? 'inline-block' : 'none';
+  });
+  document.getElementById('docPrintDateToday')?.addEventListener('change', function() {
+    var dateInp = document.getElementById('docPrintDateInput');
+    if (dateInp) dateInp.style.display = this.checked ? 'none' : 'inline-block';
+  });
+  document.getElementById('docPrintModalConfirm')?.addEventListener('click', function() {
+    if (!pendingPrint) return;
+    var addStamp = document.getElementById('docPrintStampYes')?.checked || false;
+    var doComplete = document.getElementById('docPrintCompleteYes')?.checked || false;
+    var dateType = document.querySelector('input[name="docPrintDateType"]:checked')?.value || 'today';
+    var todayStr = new Date().toISOString().slice(0, 10);
+    var dateStr = dateType === 'today' ? todayStr : (document.getElementById('docPrintDateInput')?.value || todayStr);
+    var iframe = pendingPrint.iframe;
+    var docKey = pendingPrint.docKey;
+    function doPrint() {
+      var base = (iframe.dataset.base || iframe.src).replace(/[?&]stamp=[01]/g, '').replace(/[?&]$/, '');
+      var sep = base.indexOf('?') >= 0 ? '&' : '?';
+      var url = base + sep + 'stamp=' + (addStamp ? '1' : '0');
+      iframe.onload = function() {
+        iframe.onload = null;
+        iframe.contentWindow.print();
+      };
+      iframe.src = url;
+    }
+    if (doComplete && txId) {
+      var apiDocType = docKey === 'statement' ? 'napum' : (docKey === 'tax' ? 'cheonggu' : docKey);
+      fetch('/transactions/' + txId + '/date', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transaction_date: dateStr, doc_type: apiDocType })
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.ok) {
+          var updateKey = docKey === 'statement' ? 'napum' : (docKey === 'tax' ? 'cheonggu' : docKey);
+          docComplete[updateKey] = true;
+          var dateEl = updateKey === 'gyeonjeok' ? document.getElementById('estimateDate') : (updateKey === 'napum' ? document.getElementById('deliveryDate') : document.getElementById('claimDate'));
+          var cb = updateKey === 'gyeonjeok' ? document.getElementById('estimateComplete') : (updateKey === 'napum' ? document.getElementById('deliveryComplete') : document.getElementById('claimComplete'));
+          var disp = updateKey === 'gyeonjeok' ? document.getElementById('estimateDateDisplay') : (updateKey === 'napum' ? document.getElementById('deliveryDateDisplay') : document.getElementById('claimDateDisplay'));
+          var badge = updateKey === 'gyeonjeok' ? document.getElementById('estimateCompleteBadge') : (updateKey === 'napum' ? document.getElementById('deliveryCompleteBadge') : document.getElementById('claimCompleteBadge'));
+          if (dateEl) { dateEl.value = dateStr; if (dateEl.type === 'hidden' && disp) disp.textContent = dateStr; }
+          if (cb) cb.checked = true;
+          if (badge) badge.textContent = '✓';
+        }
+        doPrint();
+      }).catch(function() { doPrint(); });
+    } else {
+      doPrint();
+    }
+    bootstrap.Modal.getInstance(docPrintModal).hide();
+    pendingPrint = null;
+  });
+})();
+</script>
+
+<script>
+(function initGubunCustomerFilter() {
+  var gubunFilter = document.getElementById('gubunFilter');
+  var customerSelect = document.getElementById('customerSelect');
+  if (!gubunFilter || !customerSelect) return;
+  var allCustomers = [];
+  customerSelect.querySelectorAll('option').forEach(function(opt) {
+    if (opt.value) {
+      allCustomers.push({
+        value: opt.value,
+        text: opt.textContent,
+        gubun: (opt.getAttribute('data-gubun') || '일반').trim()
+      });
+    }
+  });
+  function filterCustomersByGubun() {
+    var gubun = (gubunFilter.value || '일반').trim();
+    var selectedVal = customerSelect.value;
+    var selectedStillValid = false;
+    customerSelect.innerHTML = '<option value="">선택</option>';
+    allCustomers.forEach(function(c) {
+      if (c.gubun === gubun) {
+        var opt = document.createElement('option');
+        opt.value = c.value;
+        opt.textContent = c.text;
+        opt.setAttribute('data-gubun', c.gubun);
+        if (c.value === selectedVal) {
+          opt.selected = true;
+          selectedStillValid = true;
+        }
+        customerSelect.appendChild(opt);
+      }
+    });
+    if (!selectedStillValid && selectedVal) customerSelect.value = '';
+  }
+  gubunFilter.addEventListener('change', filterCustomersByGubun);
+  filterCustomersByGubun();
+})();
+</script>
+
+<script>
+(function() {
+  const itemBody = document.getElementById('itemBody');
+  const directItemId = {{ direct_item.id }};
+  const itemOpts = {};
+  {% for i in items %}
+  {% if i.id != direct_item.id %}
+  itemOpts[{{ i.id }}] = { name: {{ i.name | tojson }}, unit: {{ i.unit | tojson }}, spec: {{ (i.spec or '') | tojson }}, unit_price: {{ i.unit_price }} };
+  {% endif %}
+  {% endfor %}
+
+  const isSavedOrder = {{ 'true' if transaction else 'false' }};
+
+  (function initDocCompleteCheckboxes() {
+    var estimateDate = document.getElementById('estimateDate');
+    var estimateComplete = document.getElementById('estimateComplete');
+    var deliveryDate = document.getElementById('deliveryDate');
+    var deliveryComplete = document.getElementById('deliveryComplete');
+    var claimDate = document.getElementById('claimDate');
+    var claimComplete = document.getElementById('claimComplete');
+    if (!estimateComplete) return;
+    function uncheckIfDateCleared(dateInput, cb) {
+      if (dateInput && !dateInput.value.trim() && cb) cb.checked = false;
+    }
+    if (estimateDate) estimateDate.addEventListener('change', function() { uncheckIfDateCleared(estimateDate, estimateComplete); });
+    if (deliveryDate) deliveryDate.addEventListener('change', function() { uncheckIfDateCleared(deliveryDate, deliveryComplete); });
+    if (claimDate) claimDate.addEventListener('change', function() { uncheckIfDateCleared(claimDate, claimComplete); });
+    estimateComplete.addEventListener('click', function(e) {
+      if (this.checked && (!estimateDate || !estimateDate.value.trim())) {
+        e.preventDefault();
+        this.checked = false;
+        alert('날짜 입력 후 완료체크해주시기 바랍니다.');
+      }
+    });
+    deliveryComplete.addEventListener('click', function(e) {
+      if (this.checked) {
+        if (!estimateComplete.checked) {
+          e.preventDefault();
+          this.checked = false;
+          alert('견적완료 후 납품완료 체크가능합니다.');
+          return;
+        }
+        if (!deliveryDate || !deliveryDate.value.trim()) {
+          e.preventDefault();
+          this.checked = false;
+          alert('날짜 입력 후 완료체크해주시기 바랍니다.');
+        }
+      }
+    });
+    claimComplete.addEventListener('click', function(e) {
+      if (this.checked && (!claimDate || !claimDate.value.trim())) {
+        e.preventDefault();
+        this.checked = false;
+        alert('날짜 입력 후 완료체크해주시기 바랍니다.');
+      }
+    });
+    estimateComplete.addEventListener('change', function() {
+      if (!this.checked && deliveryComplete) deliveryComplete.checked = false;
+    });
+  })();
+
+  function rowHtml() {
+    let opt = '<option value="">선택</option><option value="' + directItemId + '" data-unit="EA" data-spec="" data-price="0">직접입력</option>';
+    for (const id in itemOpts) {
+      opt += `<option value="${id}" data-unit="${itemOpts[id].unit}" data-spec="${itemOpts[id].spec || ''}" data-price="${itemOpts[id].unit_price}">${itemOpts[id].name}</option>`;
+    }
+    return `<tr data-item-id="" data-is-direct="0">
+      <td><input type="checkbox" class="form-check-input item-row-check" aria-label="선택"></td>
+      <td>
+        <select name="item_id[]" class="form-select form-select-sm item-select">${opt}</select>
+        <input type="text" name="item_name_custom[]" class="form-control form-control-sm mt-1 item-name-custom" placeholder="품목명 입력" style="display:none">
+      </td>
+      <td class="spec-cell"><span class="spec-display">-</span></td>
+      <td class="unit-cell"><span class="unit-display">EA</span></td>
+      <td><input type="number" name="quantity[]" class="form-control form-control-sm qty" min="1" value="1"></td>
+      <td><input type="number" name="unit_price[]" class="form-control form-control-sm unit-price-input" min="0" value="0"></td>
+      <td class="supply">0</td>
+      <td class="vat">0</td>
+      <td class="total">0</td>
+    </tr>`;
+  }
+
+  function toggleDirectInput(tr, preserveUnitPrice) {
+    const sel = tr.querySelector('.item-select');
+    const customInput = tr.querySelector('.item-name-custom');
+    const specCell = tr.querySelector('.spec-cell');
+    const unitCell = tr.querySelector('.unit-cell');
+    const unitPriceCell = tr.querySelector('td:nth-child(6)');
+    const isDirect = sel && parseInt(sel.value, 10) === directItemId;
+    if (customInput) customInput.style.display = isDirect ? 'block' : 'none';
+    if (specCell) {
+      specCell.innerHTML = isDirect ? '<input type="text" name="spec_custom[]" class="form-control form-control-sm" placeholder="규격" value="">' : '<span class="spec-display">' + (sel?.selectedOptions[0]?.dataset?.spec || '-') + '</span>';
+    }
+    if (unitCell) {
+      unitCell.innerHTML = isDirect ? '<input type="text" name="unit_custom[]" class="form-control form-control-sm" placeholder="단위" value="EA">' : '<span class="unit-display">' + (sel?.selectedOptions[0]?.dataset?.unit || 'EA') + '</span>';
+    }
+    const existingPrice = unitPriceCell.querySelector('.unit-price-input, input[name="unit_price[]"]');
+    const price = (preserveUnitPrice && existingPrice && existingPrice.value !== '') ? existingPrice.value : (isDirect ? 0 : (parseInt(sel?.selectedOptions[0]?.dataset?.price, 10) || 0));
+    unitPriceCell.innerHTML = '<input type="number" name="unit_price[]" class="form-control form-control-sm unit-price-input" min="0" value="' + price + '">';
+  }
+
+  function calcRow(tr, vatExcluded) {
+    const sel = tr.querySelector('.item-select');
+    const qtyIn = tr.querySelector('.qty');
+    const priceInput = tr.querySelector('.unit-price-input');
+    const hiddenPrice = tr.querySelector('input[name="unit_price[]"]');
+    const qty = parseInt(qtyIn.value, 10) || 0;
+    let price = 0;
+    if (priceInput) {
+      price = parseInt(priceInput.value, 10) || 0;
+    } else if (hiddenPrice) {
+      price = parseInt(hiddenPrice.value, 10) || 0;
+    } else if (sel?.selectedOptions[0]?.dataset?.price) {
+      price = parseInt(sel.selectedOptions[0].dataset.price, 10) || 0;
+    }
+    const total = price * qty;
+    let supply, vat;
+    if (vatExcluded) {
+      supply = total;
+      vat = 0;
+    } else {
+      supply = Math.floor(total / 1.1);
+      vat = total - supply;
+    }
+    tr.querySelector('.supply').textContent = supply.toLocaleString();
+    tr.querySelector('.vat').textContent = vat.toLocaleString();
+    tr.querySelector('.total').textContent = total.toLocaleString();
+    updateSums();
+  }
+
+  function updateSums() {
+    let supply = 0, vat = 0, total = 0;
+    itemBody.querySelectorAll('tr').forEach(tr => {
+      const t = parseInt(tr.querySelector('.total').textContent.replace(/,/g, ''), 10) || 0;
+      if (t > 0) {
+        total += t;
+        supply += Math.floor(t / 1.1);
+        vat += t - Math.floor(t / 1.1);
+      }
+    });
+    document.getElementById('sumSupply').textContent = supply.toLocaleString();
+    document.getElementById('sumVat').textContent = vat.toLocaleString();
+    document.getElementById('sumTotal').textContent = total.toLocaleString();
+  }
+
+  function isVatExcluded() {
+    return document.getElementById('vatExcluded').value === '1';
+  }
+  function recalcAll() {
+    const vatExcluded = isVatExcluded();
+    itemBody.querySelectorAll('tr').forEach(tr => calcRow(tr, vatExcluded));
+  }
+  itemBody.addEventListener('change', function(e) {
+    if (e.target.classList.contains('item-select')) {
+      toggleDirectInput(e.target.closest('tr'), false);
+      recalcAll();
+    } else if (e.target.classList.contains('qty') || e.target.classList.contains('unit-price-input')) {
+      recalcAll();
+    }
+  });
+  itemBody.addEventListener('input', function(e) {
+    if (e.target.classList.contains('qty') || e.target.classList.contains('unit-price-input')) recalcAll();
+  });
+  var btnDeleteItems = document.getElementById('btnDeleteItems');
+  if (btnDeleteItems) btnDeleteItems.addEventListener('click', function() {
+    var checked = itemBody.querySelectorAll('.item-row-check:checked');
+    if (checked.length === 0) {
+      alert('삭제할 항목을 선택하세요.');
+      return;
+    }
+    if (itemBody.querySelectorAll('tr').length - checked.length < 1) {
+      alert('최소 1개 항목은 남겨야 합니다.');
+      return;
+    }
+    if (!confirm('선택한 ' + checked.length + '개 항목을 삭제할까요?')) return;
+    checked.forEach(function(cb) { cb.closest('tr').remove(); });
+    updateSums();
+  });
+
+  var addRow = document.getElementById('addRow');
+  if (addRow) addRow.addEventListener('click', function() {
+    itemBody.insertAdjacentHTML('beforeend', rowHtml());
+    itemBody.lastElementChild.querySelector('.item-select').focus();
+  });
+
+  var transForm = document.getElementById('transForm');
+  if (transForm) transForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (transForm.classList.contains('form-readonly')) return;
+    if (!confirm('저장하시겠습니까?')) return;
+    var rowIdx = 0;
+    itemBody.querySelectorAll('tr').forEach(tr => {
+      const sel = tr.querySelector('.item-select');
+      const qty = tr.querySelector('.qty');
+      const unitPriceInp = tr.querySelector('input[name="unit_price[]"]');
+      const isDirect = sel && parseInt(sel.value, 10) === directItemId;
+      const customName = tr.querySelector('.item-name-custom');
+      const valid = sel && sel.value !== '' && qty && parseInt(qty.value, 10) >= 1;
+      if (isDirect && (!customName || !customName.value.trim())) valid = false;
+      if (!valid) {
+        tr.querySelector('select[name="item_id[]"]')?.removeAttribute('name');
+        tr.querySelector('input[name="quantity[]"]')?.removeAttribute('name');
+        if (unitPriceInp) { unitPriceInp.removeAttribute('name'); }
+        tr.querySelector('input[name="item_name_custom[]"]')?.removeAttribute('name');
+        tr.querySelectorAll('input[name="spec_custom[]"]').forEach(el => el.removeAttribute('name'));
+        tr.querySelectorAll('input[name="unit_custom[]"]').forEach(el => el.removeAttribute('name'));
+      } else if (unitPriceInp) {
+        unitPriceInp.setAttribute('name', 'unit_price_' + rowIdx);
+        rowIdx++;
+      }
+    });
+    var formData = new FormData(transForm);
+    formData.append('_ajax', '1');
+    var btnSave = document.getElementById('btnSave');
+    if (btnSave) btnSave.disabled = true;
+    fetch(transForm.action || window.location.href, {
+      method: 'POST',
+      body: formData,
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    }).then(function(r) { return r.json().catch(function() { return { ok: false, error: '저장 실패' }; }); }).then(function(data) {
+      if (data.ok) {
+        alert('저장되었습니다.');
+        if (data.redirect) window.location.href = data.redirect;
+      } else {
+        alert(data.error || '저장 실패');
+      }
+    }).catch(function() { alert('저장 실패'); }).finally(function() {
+      if (btnSave) btnSave.disabled = false;
+    });
+  });
+
+  itemBody.querySelectorAll('tr').forEach(tr => toggleDirectInput(tr, true));
+  recalcAll();
+})();
+</script>
+{% endblock %}
