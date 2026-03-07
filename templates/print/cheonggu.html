@@ -95,8 +95,8 @@
     <div class="gyeonjeok-title napum-title">청  구  서</div>
 
     <table class="napum-info-above">
-      <tr><td class="napum-label napum-label-3"><span>공</span><span>사</span><span>명</span></td><td class="napum-value-cell">:&nbsp;&nbsp;&nbsp; {{ transaction.project_name or '' }}</td></tr>
-      <tr><td class="napum-label napum-label-3"><span>금</span><span></span><span>액</span></td><td class="napum-value-cell">:&nbsp;&nbsp;&nbsp; ₩ {{ "{:,}".format(total_amount) }}원 ({{ total_amount_korean }})</td></tr>
+      <tr><td class="napum-label napum-label-3"><span>공</span><span>사</span><span>명</span> :</td><td class="napum-value-cell">{{ transaction.project_name or '' }}</td></tr>
+      <tr><td class="napum-label napum-label-3"><span>금</span><span></span><span>액</span> :</td><td class="napum-value-cell">₩ {{ "{:,}".format(total_amount) }}원 ({{ total_amount_korean }})</td></tr>
     </table>
 
     <div class="gyeonjeok-merged">

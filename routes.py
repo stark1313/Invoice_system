@@ -455,6 +455,13 @@ def register_routes(app):
         date_from = request.args.get("date_from", "").strip()
         date_to = request.args.get("date_to", "").strip()
         view = request.args.get("view", "list")
+        page = request.args.get("page", 1, type=int)
+        per_page = 10
+
+        # 기간 기본값: 당해 1월1일 ~ 12월31일 (파라미터 없을 때만)
+        if not date_from and not date_to:
+            date_from = f"{today.year}-01-01"
+            date_to = f"{today.year}-12-31"
 
         # list_type에 따른 기본 status 및 제목
         list_titles = {"order": "주문내역", "estimate": "견적내역", "delivery": "납품내역", "claim": "청구내역", "statement": "거래명세서내역"}
@@ -516,7 +523,8 @@ def register_routes(app):
             elif status == "claim":
                 query = query.filter(Transaction.claim_date.isnot(None))
 
-        transactions = query.order_by(Transaction.transaction_date.desc()).all()
+        pagination = query.order_by(Transaction.transaction_date.desc()).paginate(page=page, per_page=per_page)
+        transactions = pagination.items
         items_summaries = {}
         for t in transactions:
             parts = []
@@ -530,6 +538,7 @@ def register_routes(app):
         return render_template(
             "transactions/list.html",
             transactions=transactions,
+            pagination=pagination,
             q=q,
             customer_id=customer_id,
             gubun=gubun,
@@ -620,7 +629,7 @@ def register_routes(app):
                 db.session.add(ti)
             db.session.commit()
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                return jsonify(ok=True)
+                return jsonify(ok=True, redirect=url_for("transaction_list"))
             flash("주문이 등록되었습니다.", "success")
             return redirect(url_for("transaction_list"))
         customers = Customer.query.order_by(Customer.name).all()
@@ -732,7 +741,7 @@ def register_routes(app):
                 db.session.add(ti)
             db.session.commit()
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                return jsonify(ok=True, redirect=url_for("transaction_edit", id=t.id))
+                return jsonify(ok=True, redirect=url_for("transaction_list"))
             flash("주문이 수정되었습니다.", "success")
             return redirect(url_for("transaction_list"))
         customers = Customer.query.order_by(Customer.name).all()

@@ -96,7 +96,7 @@
           <th>업태/종목</th><td{% if (supplier.business_type or '')|length > 22 %} class="gyeonjeok-cell-small"{% endif %}>{{ supplier.business_type or '' }}</td>
         </tr>
         <tr>
-          <th>연락처</th><td class="gyeonjeok-contact-cell">{{ (supplier.phone or '') }} / {{ (supplier.fax or '') }}</td>
+          <th>전화/팩스</th><td class="gyeonjeok-contact-cell">{{ (supplier.phone or '') }} / {{ (supplier.fax or '') }}</td>
         </tr>
       </table>
       <table class="gyeonjeok-detail-table">

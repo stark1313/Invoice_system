@@ -26,7 +26,7 @@
     .sidebar-nav .nav-link:hover { background: rgba(255,255,255,0.1); color: #fff; }
     .sidebar-nav .nav-link.active { background: rgba(255,255,255,0.15); font-weight: 600; }
     .sidebar-category {
-      padding: 0.5rem 1rem 0.25rem; font-size: 0.85rem; font-weight: 600;
+      padding: 0.5rem 1rem 0.25rem; font-size: 1.06rem; font-weight: 600;
       color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.05em;
     }
     .sidebar-sub .nav-link { padding-left: 1.5rem; font-size: 0.9rem; }
@@ -48,8 +48,8 @@
     </div>
     <div class="sidebar-category">거래관리</div>
     <ul class="sidebar-nav sidebar-sub">
-      <li class="nav-item"><a class="nav-link {% if request.endpoint == 'transaction_add' or request.endpoint == 'transaction_edit' %}active{% endif %}" href="{{ url_for('transaction_add') }}">주문입력</a></li>
-      <li class="nav-item"><a class="nav-link {% if request.endpoint == 'transaction_list' and (list_type|default('') == '') %}active{% endif %}" href="{{ url_for('transaction_list') }}">주문내역</a></li>
+      <li class="nav-item"><a class="nav-link {% if request.endpoint == 'transaction_add' %}active{% endif %}" href="{{ url_for('transaction_add') }}">주문입력</a></li>
+      <li class="nav-item"><a class="nav-link {% if request.endpoint == 'transaction_list' and (list_type|default('') == '') or request.endpoint == 'transaction_edit' %}active{% endif %}" href="{{ url_for('transaction_list') }}">주문내역</a></li>
       <li class="nav-item"><a class="nav-link {% if request.endpoint and request.endpoint.startswith('customer') %}active{% endif %}" href="{{ url_for('customer_list') }}">거래처리스트</a></li>
     </ul>
     <div class="sidebar-category">품목관리</div>

@@ -1,22 +1,40 @@
 {% extends "base.html" %}
 {% block title %}품목 목록{% endblock %}
 {% block content %}
+<style>
+  .item-list-table { font-size: 0.8rem; }
+  .item-list-table th, .item-list-table td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style>
 <h2 class="mb-2">품목 관리</h2>
-<div class="mb-3">
+<div class="page-actions mb-3">
   <a class="btn btn-primary" href="{{ url_for('item_add') }}">품목 추가</a>
+  <a class="btn btn-outline-primary" href="{{ url_for('item_upload') }}">일괄 등록</a>
 </div>
-<table class="table table-bordered table-hover">
+<form method="get" class="row g-2 align-items-center mb-3">
+  <div class="col-sm-6 col-md-4">
+    <input type="text" name="q" class="form-control" placeholder="품목명 / 단위 검색" value="{{ q or '' }}">
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-outline-secondary">검색</button>
+  </div>
+  {% if q %}
+  <div class="col-auto">
+    <a href="{{ url_for('item_list') }}" class="btn btn-link btn-sm">초기화</a>
+  </div>
+  {% endif %}
+</form>
+<table class="table table-bordered table-hover item-list-table">
   <thead class="table-light">
-    <tr><th>품목명</th><th>규격</th><th>단위</th><th>단가</th><th></th></tr>
+    <tr><th>품목명</th><th>규격</th><th>단위</th><th>단가</th><th>ID</th></tr>
   </thead>
   <tbody>
     {% for i in items %}
     <tr>
-      <td>{{ i.name or '' }}</td>
+      <td><a href="{{ url_for('item_edit', id=i.id) }}" class="text-decoration-none">{{ i.name or '' }}</a></td>
       <td>{{ i.spec or '' }}</td>
       <td>{{ i.unit or 'EA' }}</td>
       <td>{{ "{:,}".format(i.unit_price or 0) }}</td>
-      <td><a href="{{ url_for('item_edit', id=i.id) }}" class="btn btn-sm btn-outline-secondary">수정</a></td>
+      <td>{{ i.code or ("P{:06d}"|format(i.id)) }}</td>
     </tr>
     {% else %}
     <tr><td colspan="5">등록된 품목이 없습니다.</td></tr>
