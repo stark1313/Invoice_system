@@ -28,7 +28,13 @@
     .sidebar-category {
       padding: 0.5rem 1rem 0.25rem; font-size: 1.06rem; font-weight: 600;
       color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.05em;
+      cursor: pointer; display: flex; align-items: center; gap: 0.35rem;
+      user-select: none;
     }
+    .sidebar-category:hover { color: #fff; }
+    .sidebar-category .cat-toggle { font-size: 0.75rem; transition: transform 0.2s; }
+    .sidebar-category.collapsed .cat-toggle { transform: rotate(-90deg); }
+    .sidebar-category.collapsed + .sidebar-sub { display: none; }
     .sidebar-sub .nav-link { padding-left: 1.5rem; font-size: 0.9rem; }
     .main-content {
       flex: 1; display: flex; flex-direction: column; min-width: 0;
@@ -47,18 +53,18 @@
     <div class="sidebar-brand">
       <a href="{{ url_for('transaction_list') }}">태경산업 주문관리 시스템</a>
     </div>
-    <div class="sidebar-category">거래관리</div>
+    <div class="sidebar-category" data-toggle><span class="cat-toggle">⌵</span>거래관리</div>
     <ul class="sidebar-nav sidebar-sub">
       <li class="nav-item"><a class="nav-link {% if request.endpoint == 'transaction_add' %}active{% endif %}" href="{{ url_for('transaction_add') }}">주문입력</a></li>
       <li class="nav-item"><a class="nav-link {% if request.endpoint == 'transaction_list' and (list_type|default('') == '') or request.endpoint == 'transaction_edit' %}active{% endif %}" href="{{ url_for('transaction_list') }}">주문내역</a></li>
       <li class="nav-item"><a class="nav-link {% if request.endpoint and request.endpoint.startswith('customer') %}active{% endif %}" href="{{ url_for('customer_list') }}">거래처리스트</a></li>
     </ul>
-    <div class="sidebar-category">품목관리</div>
+    <div class="sidebar-category" data-toggle><span class="cat-toggle">⌵</span>품목관리</div>
     <ul class="sidebar-nav sidebar-sub">
       <li class="nav-item"><a class="nav-link {% if request.endpoint == 'item_list' %}active{% endif %}" href="{{ url_for('item_list') }}">품목내역</a></li>
       <li class="nav-item"><a class="nav-link {% if request.endpoint == 'inventory_list' %}active{% endif %}" href="{{ url_for('inventory_list') }}">재고관리</a></li>
     </ul>
-    <div class="sidebar-category">기타</div>
+    <div class="sidebar-category" data-toggle><span class="cat-toggle">⌵</span>기타</div>
     <ul class="sidebar-nav sidebar-sub">
       <li class="nav-item"><a class="nav-link {% if request.endpoint and request.endpoint.startswith('document') %}active{% endif %}" href="{{ url_for('document_list') }}">자료실</a></li>
       <li class="nav-item"><a class="nav-link" href="https://www.g2b.go.kr" target="_blank" rel="noopener">나라장터</a></li>
@@ -79,6 +85,13 @@
     {% block content %}{% endblock %}
   </main>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.querySelectorAll('.sidebar-category[data-toggle]').forEach(function(el) {
+      el.addEventListener('click', function() {
+        this.classList.toggle('collapsed');
+      });
+    });
+  </script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

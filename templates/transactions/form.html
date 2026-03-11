@@ -112,12 +112,8 @@
         <div class="row mb-3" id="docStatusSection">
           <div class="col-md-4">
             <label class="form-label">견적일자</label>
-            {% if is_editable|default(false) %}
-            <input type="date" name="estimate_date" id="estimateDate" class="form-control" value="{{ transaction.estimate_date.isoformat() if transaction.estimate_date else '' }}">
-            {% else %}
             <div class="doc-date-display" id="estimateDateDisplay">{{ transaction.estimate_date.strftime('%Y-%m-%d') if transaction.estimate_date else '' }}</div>
             <input type="hidden" name="estimate_date" id="estimateDate" value="{{ transaction.estimate_date.isoformat() if transaction.estimate_date else '' }}">
-            {% endif %}
             {% if is_editable|default(false) %}
             <label class="form-check form-check-inline mt-1"><input type="checkbox" name="estimate_complete" id="estimateComplete" value="1" class="form-check-input doc-complete-cb" {% if transaction.estimate_date %}checked{% endif %}> 견적완료</label>
             {% else %}
@@ -126,12 +122,8 @@
           </div>
           <div class="col-md-4">
             <label class="form-label">납품일자</label>
-            {% if is_editable|default(false) %}
-            <input type="date" name="delivery_date" id="deliveryDate" class="form-control" value="{{ transaction.delivery_date.isoformat() if transaction.delivery_date else '' }}">
-            {% else %}
             <div class="doc-date-display" id="deliveryDateDisplay">{{ transaction.delivery_date.strftime('%Y-%m-%d') if transaction.delivery_date else '' }}</div>
             <input type="hidden" name="delivery_date" id="deliveryDate" value="{{ transaction.delivery_date.isoformat() if transaction.delivery_date else '' }}">
-            {% endif %}
             {% if is_editable|default(false) %}
             <label class="form-check form-check-inline mt-1"><input type="checkbox" name="delivery_complete" id="deliveryComplete" value="1" class="form-check-input doc-complete-cb" {% if transaction.delivery_date %}checked{% endif %}> 납품완료</label>
             {% else %}
@@ -140,12 +132,8 @@
           </div>
           <div class="col-md-4">
             <label class="form-label">청구일자</label>
-            {% if is_editable|default(false) %}
-            <input type="date" name="claim_date" id="claimDate" class="form-control" value="{{ transaction.claim_date.isoformat() if transaction.claim_date else '' }}">
-            {% else %}
             <div class="doc-date-display" id="claimDateDisplay">{{ transaction.claim_date.strftime('%Y-%m-%d') if transaction.claim_date else '' }}</div>
             <input type="hidden" name="claim_date" id="claimDate" value="{{ transaction.claim_date.isoformat() if transaction.claim_date else '' }}">
-            {% endif %}
             {% if is_editable|default(false) %}
             <label class="form-check form-check-inline mt-1"><input type="checkbox" name="claim_complete" id="claimComplete" value="1" class="form-check-input doc-complete-cb" {% if transaction.claim_date %}checked{% endif %}> 청구완료</label>
             {% else %}
@@ -551,33 +539,35 @@
     if (estimateDate) estimateDate.addEventListener('change', function() { uncheckIfDateCleared(estimateDate, estimateComplete); });
     if (deliveryDate) deliveryDate.addEventListener('change', function() { uncheckIfDateCleared(deliveryDate, deliveryComplete); });
     if (claimDate) claimDate.addEventListener('change', function() { uncheckIfDateCleared(claimDate, claimComplete); });
-    estimateComplete.addEventListener('click', function(e) {
-      if (this.checked && (!estimateDate || !estimateDate.value.trim())) {
-        e.preventDefault();
-        this.checked = false;
-        alert('날짜 입력 후 완료체크해주시기 바랍니다.');
+    estimateComplete.addEventListener('change', function() {
+      if (this.checked && estimateDate && !estimateDate.value.trim()) {
+        var today = new Date().toISOString().slice(0, 10);
+        estimateDate.value = today;
+        var disp = document.getElementById('estimateDateDisplay');
+        if (disp) disp.textContent = today;
       }
     });
     deliveryComplete.addEventListener('click', function(e) {
-      if (this.checked) {
-        if (!estimateComplete.checked) {
-          e.preventDefault();
-          this.checked = false;
-          alert('견적완료 후 납품완료 체크가능합니다.');
-          return;
-        }
-        if (!deliveryDate || !deliveryDate.value.trim()) {
-          e.preventDefault();
-          this.checked = false;
-          alert('날짜 입력 후 완료체크해주시기 바랍니다.');
-        }
-      }
-    });
-    claimComplete.addEventListener('click', function(e) {
-      if (this.checked && (!claimDate || !claimDate.value.trim())) {
+      if (this.checked && !estimateComplete.checked) {
         e.preventDefault();
         this.checked = false;
-        alert('날짜 입력 후 완료체크해주시기 바랍니다.');
+        alert('견적완료 후 납품완료 체크가능합니다.');
+      }
+    });
+    deliveryComplete.addEventListener('change', function() {
+      if (this.checked && deliveryDate && !deliveryDate.value.trim()) {
+        var today = new Date().toISOString().slice(0, 10);
+        deliveryDate.value = today;
+        var disp = document.getElementById('deliveryDateDisplay');
+        if (disp) disp.textContent = today;
+      }
+    });
+    claimComplete.addEventListener('change', function() {
+      if (this.checked && claimDate && !claimDate.value.trim()) {
+        var today = new Date().toISOString().slice(0, 10);
+        claimDate.value = today;
+        var disp = document.getElementById('claimDateDisplay');
+        if (disp) disp.textContent = today;
       }
     });
     estimateComplete.addEventListener('change', function() {
@@ -678,7 +668,24 @@
   }
   itemBody.addEventListener('change', function(e) {
     if (e.target.classList.contains('item-select')) {
-      toggleDirectInput(e.target.closest('tr'), false);
+      var sel = e.target;
+      var tr = sel.closest('tr');
+      var val = sel.value ? parseInt(sel.value, 10) : null;
+      if (val && val !== directItemId) {
+        var rows = itemBody.querySelectorAll('tr');
+        for (var i = 0; i < rows.length; i++) {
+          if (rows[i] === tr) continue;
+          var otherSel = rows[i].querySelector('.item-select');
+          if (otherSel && otherSel.value && parseInt(otherSel.value, 10) === val) {
+            alert('이미 선택된 품목입니다. 동일 품목은 중복 등록할 수 없습니다.');
+            sel.value = '';
+            toggleDirectInput(tr, false);
+            recalcAll();
+            return;
+          }
+        }
+      }
+      toggleDirectInput(tr, false);
       recalcAll();
     } else if (e.target.classList.contains('qty') || e.target.classList.contains('unit-price-input')) {
       recalcAll();

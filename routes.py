@@ -4,11 +4,9 @@ import os
 from datetime import datetime
 from flask import render_template, request, redirect, url_for, flash, send_file, current_app, jsonify
 from werkzeug.utils import secure_filename
-from PIL import Image
 from sqlalchemy import or_, extract
 from extensions import db
 from models import Customer, Item, Transaction, TransactionItem, CompanyInfo, Document, DocumentFile
-from pdf_utils import build_napum_pdf, build_cheonggu_pdf, build_gyeonjeok_pdf
 from utils import amount_to_korean_won
 from config import (
     SUPPLIER_NAME,
@@ -88,6 +86,10 @@ def register_routes(app):
     def index():
         return redirect(url_for("transaction_list"))
 
+    @app.route("/health")
+    def health():
+        return "ok", 200
+
     # ----- 회사정보 -----
     def _get_company():
         c = CompanyInfo.query.first()
@@ -118,6 +120,7 @@ def register_routes(app):
                 os.makedirs(upload_dir, exist_ok=True)
                 filepath = os.path.join(upload_dir, secure_filename(f"stamp_{company.id}.png"))
                 try:
+                    from PIL import Image
                     img = Image.open(f.stream).convert("RGBA")
                     data = img.getdata()
                     new_data = []
@@ -1011,6 +1014,7 @@ def register_routes(app):
 
     @app.route("/transactions/<int:id>/napum/pdf")
     def napum_pdf(id):
+        from pdf_utils import build_napum_pdf
         t = Transaction.query.get_or_404(id)
         rows = _transaction_rows(t)
         _, _, total_amount = _totals(rows)
@@ -1044,6 +1048,7 @@ def register_routes(app):
 
     @app.route("/transactions/<int:id>/cheonggu/pdf")
     def cheonggu_pdf(id):
+        from pdf_utils import build_cheonggu_pdf
         t = Transaction.query.get_or_404(id)
         rows = _transaction_rows(t)
         _, _, total_amount = _totals(rows)
@@ -1078,6 +1083,7 @@ def register_routes(app):
 
     @app.route("/transactions/<int:id>/gyeonjeok/pdf")
     def gyeonjeok_pdf(id):
+        from pdf_utils import build_gyeonjeok_pdf
         t = Transaction.query.get_or_404(id)
         rows = _transaction_rows(t)
         total_supply, _, total_amount = _totals(rows)
