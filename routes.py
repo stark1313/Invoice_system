@@ -873,9 +873,9 @@ def register_routes(app):
                 db.session.add(ti)
             db.session.commit()
             if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                return jsonify(ok=True, redirect=url_for("transaction_list"))
+                return jsonify(ok=True, redirect=url_for("transaction_edit", id=id))
             flash("주문이 수정되었습니다.", "success")
-            return redirect(url_for("transaction_list"))
+            return redirect(url_for("transaction_edit", id=id))
         customers = Customer.query.order_by(Customer.name).all()
         items = Item.query.order_by(Item.name).all()
         direct_item = _direct_input_item()
@@ -981,6 +981,7 @@ def register_routes(app):
         rows = _transaction_rows(t)
         total_supply, total_vat, total_amount = _totals(rows)
         popup = request.args.get("popup") == "1"
+        show_stamp = request.args.get("stamp") == "1"
         return render_template(
             "print/statement.html",
             transaction=t,
@@ -991,6 +992,7 @@ def register_routes(app):
             total_amount=total_amount,
             supplier=_supplier(),
             popup=popup,
+            show_stamp=show_stamp,
         )
 
     @app.route("/transactions/<int:id>/napum")
@@ -1098,13 +1100,14 @@ def register_routes(app):
 
     @app.route("/transactions/<int:id>/tax-invoice")
     def tax_invoice_print(id):
-        """세금계산서 (거래명세서와 동일 형식으로 표시, 추후 별도 템플릿 적용 가능)"""
+        """세금계산서 (표준 세금계산서 양식)"""
         t = Transaction.query.get_or_404(id)
         rows = _transaction_rows(t)
         total_supply, total_vat, total_amount = _totals(rows)
         popup = request.args.get("popup") == "1"
+        show_stamp = request.args.get("stamp") == "1"
         return render_template(
-            "print/statement.html",
+            "print/tax.html",
             transaction=t,
             customer=t.customer,
             rows=rows,
@@ -1113,4 +1116,5 @@ def register_routes(app):
             total_amount=total_amount,
             supplier=_supplier(),
             popup=popup,
+            show_stamp=show_stamp,
         )

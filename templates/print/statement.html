@@ -7,8 +7,16 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
   <style>
     @page { size: A4; margin: 10mm; }
-    body { background-color: unset; background: unset; text-align: center; }
+    body { background-color: unset; background: unset; text-align: center; display: flex; flex-direction: column; min-height: 100vh; }
+    .print-area { flex: 1; }
+    @media screen {
+      .doc-page-nav { display: flex !important; }
+      .statement-page-group { display: none; }
+      .statement-page-group.active { display: block; }
+    }
     @media print {
+      .doc-page-nav { display: none !important; }
+      .statement-page-group { display: block !important; }
       .no-print { display: none !important; }
       body { margin: 0; padding: 0; background-color: unset; background: unset; text-align: center; }
       .print-area { page-break-inside: avoid; overflow: hidden; }
@@ -71,6 +79,9 @@
     .statement-supplier-table td { border: 1px solid #98d98e; padding: 0; vertical-align: middle; font-size: 2.2mm; }
     .statement-supplier-table td.supplier-label { width: 12%; font-weight: bold; font-size: 2.64mm; color: #2d7a3e; }
     .statement-supplier-table td.supplier-value { width: 38%; font-size: 2.86mm; }
+    .statement-supplier-table td.supplier-value-ceo { position: relative; }
+    .statement-stamp-area { position: absolute; right: 2mm; top: 50%; transform: translateY(-50%); }
+    .statement-stamp-img { height: 12mm; vertical-align: middle; background: transparent; }
     .statement-supplier-table td:nth-child(2) { width: 39%; }
     .statement-supplier-table td:last-child { width: 37%; }
     .statement-info-row { display: flex; margin-bottom: 1.5mm; }
@@ -106,10 +117,19 @@
     .statement-col-공급가액 { width: 14.9%; }
     .statement-col-세액 { width: 14.9%; }
     .statement-col-비고 { width: 5%; min-width: 0; }
+    .doc-page-nav { display: none; align-items: center; justify-content: center; gap: 10px; padding: 12px; background: #f8f9fa; border-top: 1px solid #dee2e6; }
+    .doc-page-nav .btn { min-width: 70px; }
+    .doc-page-nav .page-info { font-size: 0.9rem; color: #495057; margin: 0 4px; }
   </style>
 </head>
 <body>
   <div class="print-area">
+    {% set num_pages = [1, (rows|length + 4) // 5]|max %}
+    {% for page_idx in range(num_pages) %}
+    {% set page_start = page_idx * 5 %}
+    {% set page_rows = rows[page_start:page_start + 5] %}
+    {% set blank_count = [0, 5 - page_rows|length]|max %}
+    <div class="statement-page-group{% if page_idx == 0 %} active{% endif %}" data-page="{{ page_idx + 1 }}" style="{% if page_idx > 0 %}page-break-before: always;{% endif %}">
     {% for copy in ['공급자용', '공급받는자용'] %}
     <div class="statement-sheet">
       <div class="statement-header">
@@ -139,7 +159,7 @@
             <table class="statement-supplier-table">
               <colgroup><col style="width:12%"><col style="width:39%"><col style="width:12%"><col style="width:37%"></colgroup>
               <tr><td class="supplier-label">등록번호</td><td class="supplier-value" colspan="3">{{ supplier.biz_no or '' }}</td></tr>
-              <tr><td class="supplier-label">상호<br>(법인명)</td><td class="supplier-value">{{ supplier.name or '' }}</td><td class="supplier-label">성명</td><td class="supplier-value">{{ supplier.ceo or '' }}</td></tr>
+              <tr><td class="supplier-label">상호<br>(법인명)</td><td class="supplier-value">{{ supplier.name or '' }}</td><td class="supplier-label">성명</td><td class="supplier-value supplier-value-ceo"><span>{{ supplier.ceo or '' }}</span><span class="statement-stamp-area" style="display:{{ 'inline' if show_stamp|default(false) else 'none' }}">{% if supplier.stamp_path %}<img src="{{ url_for('company_stamp') }}" alt="직인" class="statement-stamp-img">{% endif %}</span></td></tr>
               <tr><td class="supplier-label">사업장<br>주소</td><td class="supplier-value" colspan="3">{{ supplier.address or '' }}</td></tr>
               <tr><td class="supplier-label">전화</td><td class="supplier-value">{{ supplier.phone or '' }}</td><td class="supplier-label">팩스</td><td class="supplier-value">{{ supplier.fax or '' }}</td></tr>
             </table>
@@ -157,7 +177,7 @@
           </tr>
         </thead>
         <tbody>
-          {% for r in rows %}
+          {% for r in page_rows %}
           <tr>
             <td>{{ transaction.transaction_date.month }}</td>
             <td>{{ transaction.transaction_date.day }}</td>
@@ -170,7 +190,6 @@
             <td></td>
           </tr>
           {% endfor %}
-          {% set blank_count = [0, 10 - rows|length]|max %}
           {% for _ in range(blank_count) %}
           <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
           {% endfor %}
@@ -194,6 +213,34 @@
       </div>
     </div>
     {% endfor %}
+    </div>
+    {% endfor %}
   </div>
+  <div class="doc-page-nav no-print" id="docPageNav" style="display:none">
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="docPagePrev">이전</button>
+    <span class="page-info" id="docPageInfo">1 / 1</span>
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="docPageNext">다음</button>
+  </div>
+  <script>
+  (function() {
+    var groups = document.querySelectorAll('.statement-page-group');
+    var nav = document.getElementById('docPageNav');
+    var prevBtn = document.getElementById('docPagePrev');
+    var nextBtn = document.getElementById('docPageNext');
+    var infoEl = document.getElementById('docPageInfo');
+    if (groups.length <= 1) return;
+    nav.style.display = 'flex';
+    var cur = 1;
+    function update() {
+      groups.forEach(function(g, i) { g.classList.toggle('active', i + 1 === cur); });
+      infoEl.textContent = cur + ' / ' + groups.length;
+      prevBtn.disabled = cur <= 1;
+      nextBtn.disabled = cur >= groups.length;
+    }
+    prevBtn.addEventListener('click', function() { if (cur > 1) { cur--; update(); } });
+    nextBtn.addEventListener('click', function() { if (cur < groups.length) { cur++; update(); } });
+    update();
+  })();
+  </script>
 </body>
 </html>

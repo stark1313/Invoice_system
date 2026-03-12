@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>세금계산서</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    @page { size: A4; margin: 10mm; }
+    body { background-color: unset; background: unset; text-align: center; display: flex; flex-direction: column; min-height: 100vh; }
+    .print-area { flex: 1; }
+    @media screen {
+      .doc-page-nav { display: flex !important; }
+      .tax-page-group { display: none; }
+      .tax-page-group.active { display: block; }
+    }
+    @media print {
+      .doc-page-nav { display: none !important; }
+      .tax-page-group { display: block !important; }
+      .no-print { display: none !important; }
+      body { margin: 0; padding: 0; background-color: unset; background: unset; text-align: center; }
+      .print-area { page-break-inside: avoid; overflow: hidden; }
+      .tax-sheet { overflow: hidden !important; }
+      .tax-items { width: 100% !important; table-layout: fixed !important; }
+      .tax-items td:nth-child(9), .tax-items th:nth-child(9) { overflow: hidden !important; }
+      .tax-footer { overflow: hidden !important; max-width: 100% !important; }
+      .tax-footer-table { width: 100% !important; max-width: 100% !important; table-layout: fixed !important; }
+      .tax-footer-table .footer-col-1 { width: 16% !important; }
+      .tax-footer-table .footer-col-2 { width: 16% !important; }
+      .tax-footer-table .footer-col-3 { width: 16% !important; }
+      .tax-footer-table .footer-col-4 { width: 16% !important; }
+      .tax-footer-table .footer-col-5 { width: 16% !important; }
+      .tax-footer-table .footer-col-6 { width: 16% !important; }
+      .tax-footer-table .footer-col-7 { width: 16% !important; }
+      .tax-footer-table .footer-col-8 { width: 16% !important; }
+      .tax-footer-table .footer-col-9 { width: 20% !important; }
+      .tax-footer-table td, .tax-footer-table th { padding: 0.5mm 1.5mm !important; line-height: 1 !important; }
+      .tax-items tbody tr { height: 19.5px !important; }
+      .tax-items tbody td { padding: 1.3px !important; }
+      .tax-footer-table td { padding: 0.65mm 1.95mm !important; }
+    }
+    .print-area { max-width: 210mm; margin: 0 auto; padding: 8mm; font-family: "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; }
+    .tax-header { display: flex; align-items: center; border-bottom: 2px solid #3b82f6; min-height: 56px; margin-bottom: -2px; }
+    .tax-title { flex: 0 0 70%; height: 56px; padding: 11px; display: flex; align-items: center; justify-content: space-between; font-size: 1.5rem; font-weight: bold; letter-spacing: 0.2em; color: #1e40af; }
+    .tax-title .tax-title-text { flex: 1; text-align: center; }
+    .tax-copy { font-size: 0.765rem; color: #1e40af; flex-shrink: 0; text-align: right; display: inline-flex; align-items: center; gap: 2px; letter-spacing: 0; }
+    .tax-copy-paren { display: flex; align-items: center; line-height: 1.3; }
+    .tax-copy-text { text-align: center; line-height: 1.3; min-width: 5.5em; font-family: "D2Coding", "Nanum Gothic Coding", "Consolas", monospace; }
+    .tax-bookno-wrap { flex: 0 0 30%; height: 56px; border: 1px solid #3b82f6; border-left: none; }
+    .tax-bookno-table { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; font-size: 2.2mm; }
+    .tax-bookno-table td { border: 1px solid #3b82f6; padding: 1mm 2mm; vertical-align: middle; }
+    .tax-bookno-table tr:first-child td { border-top: none; }
+    .tax-bookno-table tr:last-child td { border-bottom: none; }
+    .tax-bookno-table .bookno-c { text-align: center; font-weight: bold; color: #1e40af; }
+    .tax-bookno-table .bookno-r { text-align: right; font-weight: bold; color: #1e40af; }
+    .tax-sheet { border: 1px solid #3b82f6; border-top-width: 2px; border-left-width: 2px; margin-bottom: 8mm; page-break-inside: avoid; overflow: hidden; }
+    .tax-body { display: flex; height: 45px; min-height: 36mm; margin-bottom: -2px; }
+    .tax-side { width: 3mm; min-width: 3mm; writing-mode: vertical-rl; text-orientation: mixed;
+      display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 2.5mm;
+      border-right: 1px solid #3b82f6; padding: 2mm; color: #1e40af; }
+    .tax-info { flex: 1; display: flex; min-width: 0; border-right: 1px solid #3b82f6; }
+    .tax-info:last-of-type { border-right: none; }
+    .tax-recipient { flex: 1; padding: 0; font-size: 2.2mm; border-right: 1px solid #3b82f6; display: flex; }
+    .tax-supplier { flex: 1; padding: 0; font-size: 2.2mm; border-right: none; display: flex; min-width: 0; }
+    .tax-recipient-table { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; }
+    .tax-recipient-table tr { height: 25%; }
+    .tax-recipient-table td { border: 1px solid #3b82f6; padding: 0; vertical-align: middle; }
+    .tax-recipient-table td.recipient-label { font-weight: bold; font-size: 2.64mm; color: #1e40af; }
+    .tax-recipient-table td.recipient-value { font-size: 2.86mm; }
+    .tax-supplier-table { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; }
+    .tax-supplier-table tr { height: 25%; }
+    .tax-supplier-table td { border: 1px solid #3b82f6; padding: 0; vertical-align: middle; font-size: 2.2mm; }
+    .tax-supplier-table td.supplier-label { width: 12%; font-weight: bold; font-size: 2.64mm; color: #1e40af; }
+    .tax-supplier-table td.supplier-value { width: 38%; font-size: 2.86mm; }
+    .tax-supplier-table td.supplier-value-ceo { position: relative; }
+    .tax-stamp-area { position: absolute; right: 2mm; top: 50%; transform: translateY(-50%); }
+    .tax-stamp-img { height: 12mm; vertical-align: middle; background: transparent; }
+    .tax-supplier-table td:nth-child(2) { width: 39%; }
+    .tax-supplier-table td:last-child { width: 37%; }
+    .tax-items { width: 100%; border-collapse: collapse; font-size: 2.2mm; table-layout: fixed; margin-bottom: -2px; overflow: hidden; }
+    .tax-items th, .tax-items td { border: 1px solid #3b82f6; overflow: hidden; }
+    .tax-items th { padding: 0.75mm; background: #f5f5f5; font-weight: bold; text-align: center; line-height: 1.2; color: #1e40af; border-top: 2px solid #3b82f6; border-bottom: 2px solid #3b82f6; }
+    .tax-items tbody td { padding: 1px; overflow: hidden; word-wrap: break-word; }
+    .tax-items tbody tr { height: 15px; }
+    .tax-items td:nth-child(1), .tax-items td:nth-child(2), .tax-items td:nth-child(3), .tax-items td:nth-child(4), .tax-items td:nth-child(5) { text-align: center; }
+    .tax-items td:nth-child(6), .tax-items td:nth-child(7), .tax-items td:nth-child(8) { text-align: right; }
+    .tax-items td:nth-child(9) { text-align: left; }
+    .tax-footer { display: flex; margin-top: -2px; margin-bottom: -2px; }
+    .tax-footer-table { width: 100%; border-collapse: collapse; font-size: 2.2mm; table-layout: fixed; }
+    .tax-footer-table td, .tax-footer-table th { border: 1px solid #3b82f6; padding: 1mm 2mm; vertical-align: middle; line-height: 1; }
+    .tax-footer-table th { background: #f5f5f5; font-weight: bold; color: #1e40af; font-size: 2.2mm; text-align: center; }
+    .tax-footer-table .footer-col-1 { width: 16%; font-weight: bold; color: #1e40af; }
+    .tax-footer-table .footer-col-2 { width: 16%; font-size: 2.86mm; text-align: right; }
+    .tax-footer-table .footer-col-3 { width: 16%; font-weight: bold; color: #1e40af; }
+    .tax-footer-table .footer-col-4 { width: 16%; font-size: 2.86mm; }
+    .tax-footer-table .footer-col-5 { width: 16%; font-weight: bold; color: #1e40af; }
+    .tax-footer-table .footer-col-6 { width: 16%; font-size: 2.86mm; }
+    .tax-footer-table .footer-col-7 { width: 16%; font-weight: bold; color: #1e40af; }
+    .tax-footer-table .footer-col-8 { width: 16%; font-size: 2.86mm; }
+    .tax-footer-table .footer-col-9 { width: 20%; font-weight: bold; color: #1e40af; text-align: center; vertical-align: middle; }
+    .tax-summary-table { width: 100%; border-collapse: collapse; font-size: 2.2mm; table-layout: fixed; margin-bottom: -2px; }
+    .tax-summary-table td { border: 1px solid #3b82f6; padding: 0.5mm 1mm; vertical-align: middle; text-align: center; }
+    .tax-summary-table th { border: 1px solid #3b82f6; padding: 0.5mm 1mm; background: #f5f5f5; font-weight: bold; color: #1e40af; font-size: 2.2mm; }
+    .tax-summary-table .summary-년 { width: 8.1%; }
+    .tax-summary-table .summary-월 { width: 3.2%; }
+    .tax-summary-table .summary-일 { width: 3.2%; }
+    .tax-summary-table .summary-공란수 { width: 8.1%; }
+    .tax-summary-table .summary-digit { width: 3.2%; }
+    .tax-summary-table .summary-remark { width: 6.5%; min-width: 18px; }
+    .tax-col-월 { width: 2.5%; }
+    .tax-col-일 { width: 2.5%; }
+    .tax-col-품목 { width: 25%; }
+    .tax-col-규격 { width: 15%; }
+    .tax-col-수량 { width: 5%; }
+    .tax-col-단가 { width: 15%; }
+    .tax-col-공급가액 { width: 15%; }
+    .tax-col-세액 { width: 15%; }
+    .tax-col-비고 { width: 5%; min-width: 0; }
+    .doc-page-nav { display: none; align-items: center; justify-content: center; gap: 10px; padding: 12px; background: #f8f9fa; border-top: 1px solid #dee2e6; }
+    .doc-page-nav .btn { min-width: 70px; }
+    .doc-page-nav .page-info { font-size: 0.9rem; color: #495057; margin: 0 4px; }
+  </style>
+</head>
+<body>
+  <div class="print-area">
+    {% set doc_date = transaction.claim_date or transaction.transaction_date %}
+    {% set num_pages = [1, (rows|length + 4) // 5]|max %}
+    {% for page_idx in range(num_pages) %}
+    {% set page_start = page_idx * 5 %}
+    {% set page_rows = rows[page_start:page_start + 5] %}
+    {% set blank_count = [0, 5 - page_rows|length]|max %}
+    <div class="tax-page-group{% if page_idx == 0 %} active{% endif %}" data-page="{{ page_idx + 1 }}" style="{% if page_idx > 0 %}page-break-before: always;{% endif %}">
+    {% for copy in ['공급자용', '공급받는자용'] %}
+    <div class="tax-sheet">
+      <div class="tax-header">
+        <div class="tax-title"><span class="tax-title-text">세금계산서</span><span class="tax-copy"><span class="tax-copy-paren">(</span><span class="tax-copy-text">{% if copy == '공급자용' %}공  급  자<br>보  관  용{% else %}공급받는자<br>보   관   용{% endif %}</span><span class="tax-copy-paren">)</span></span></div>
+        <div class="tax-bookno-wrap">
+          <table class="tax-bookno-table">
+            <tr>
+              <td class="bookno-c">책번호</td>
+              <td class="bookno-r">권</td>
+              <td class="bookno-r">호</td>
+            </tr>
+            <tr>
+              <td class="bookno-c">일련번호</td>
+              <td></td>
+              <td></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      <div class="tax-body">
+        <div class="tax-side">공급받는자</div>
+        <div class="tax-info">
+          <div class="tax-recipient">
+            <table class="tax-recipient-table">
+              <colgroup><col style="width:12%"><col style="width:39%"><col style="width:12%"><col style="width:37%"></colgroup>
+              <tr><td class="recipient-label">등록번호</td><td class="recipient-value" colspan="3">{{ customer.biz_no or '' }}</td></tr>
+              <tr><td class="recipient-label">상호<br>(법인명)</td><td class="recipient-value">{{ customer.name or '' }}</td><td class="recipient-label">성명</td><td class="recipient-value">{{ customer.ceo or '' }}</td></tr>
+              <tr><td class="recipient-label">사업장<br>주소</td><td class="recipient-value" colspan="3">{{ customer.address or '' }}</td></tr>
+              <tr><td class="recipient-label">업태/종목</td><td class="recipient-value">{{ (customer.business_type or '') + (customer.business_item and (' / ' + customer.business_item) or '') }}</td><td class="recipient-label">전화</td><td class="recipient-value">{{ customer.phone or '' }}</td></tr>
+            </table>
+          </div>
+          <div class="tax-side">공급자</div>
+          <div class="tax-supplier">
+            <table class="tax-supplier-table">
+              <colgroup><col style="width:12%"><col style="width:39%"><col style="width:12%"><col style="width:37%"></colgroup>
+              <tr><td class="supplier-label">등록번호</td><td class="supplier-value" colspan="3">{{ supplier.biz_no or '' }}</td></tr>
+              <tr><td class="supplier-label">상호<br>(법인명)</td><td class="supplier-value">{{ supplier.name or '' }}</td><td class="supplier-label">성명</td><td class="supplier-value supplier-value-ceo"><span>{{ supplier.ceo or '' }}</span><span class="tax-stamp-area" style="display:{{ 'inline' if show_stamp|default(false) else 'none' }}">{% if supplier.stamp_path %}<img src="{{ url_for('company_stamp') }}" alt="직인" class="tax-stamp-img">{% endif %}</span></td></tr>
+              <tr><td class="supplier-label">사업장<br>주소</td><td class="supplier-value" colspan="3">{{ supplier.address or '' }}</td></tr>
+              <tr><td class="supplier-label">업태/종목</td><td class="supplier-value">{{ supplier.business_type or '' }}</td><td class="supplier-label">전화</td><td class="supplier-value">{{ supplier.phone or '' }}</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <table class="tax-summary-table">
+        <colgroup>
+          <col class="summary-년"><col class="summary-월"><col class="summary-일">
+          <col class="summary-공란수"><col class="summary-digit"><col class="summary-digit"><col class="summary-digit"><col class="summary-digit"><col class="summary-digit"><col class="summary-digit"><col class="summary-digit"><col class="summary-digit"><col class="summary-digit"><col class="summary-digit"><col class="summary-digit">
+          <col class="summary-digit"><col class="summary-digit"><col class="summary-digit"><col class="summary-digit"><col class="summary-digit"><col class="summary-digit"><col class="summary-digit"><col class="summary-digit"><col class="summary-digit"><col class="summary-digit"><col class="summary-digit">
+          <col class="summary-remark">
+        </colgroup>
+        <thead>
+          <tr>
+            <th colspan="3" class="summary-write">작 성</th>
+            <th colspan="12" class="summary-supply">공 급 가 액</th>
+            <th colspan="11" class="summary-vat">세 액</th>
+            <th rowspan="2" class="summary-remark">비 고</th>
+          </tr>
+          <tr>
+            <th>년</th><th>월</th><th>일</th>
+            <th>공란수</th><th>백</th><th>십</th><th>억</th><th>천</th><th>백</th><th>십</th><th>만</th><th>천</th><th>백</th><th>십</th><th>일</th>
+            <th>백</th><th>십</th><th>억</th><th>천</th><th>백</th><th>십</th><th>만</th><th>천</th><th>백</th><th>십</th><th>일</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{ doc_date.year }}</td><td>{{ doc_date.month }}</td><td>{{ doc_date.day }}</td>
+            <td>{{ blank_count }}</td>
+            {% set s = total_supply or 0 %}
+            <td>{{ (s // 10000000000) % 10 }}</td><td>{{ (s // 1000000000) % 10 }}</td><td>{{ (s // 100000000) % 10 }}</td>
+            <td>{{ (s // 10000000) % 10 }}</td><td>{{ (s // 1000000) % 10 }}</td><td>{{ (s // 100000) % 10 }}</td><td>{{ (s // 10000) % 10 }}</td>
+            <td>{{ (s // 1000) % 10 }}</td><td>{{ (s // 100) % 10 }}</td><td>{{ (s // 10) % 10 }}</td><td>{{ s % 10 }}</td>
+            {% set v = total_vat or 0 %}
+            <td>{{ (v // 10000000000) % 10 }}</td><td>{{ (v // 1000000000) % 10 }}</td><td>{{ (v // 100000000) % 10 }}</td>
+            <td>{{ (v // 10000000) % 10 }}</td><td>{{ (v // 1000000) % 10 }}</td><td>{{ (v // 100000) % 10 }}</td><td>{{ (v // 10000) % 10 }}</td>
+            <td>{{ (v // 1000) % 10 }}</td><td>{{ (v // 100) % 10 }}</td><td>{{ (v // 10) % 10 }}</td><td>{{ v % 10 }}</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+      <table class="tax-items">
+        <colgroup>
+          <col class="tax-col-월"><col class="tax-col-일"><col class="tax-col-품목"><col class="tax-col-규격"><col class="tax-col-수량"><col class="tax-col-단가"><col class="tax-col-공급가액"><col class="tax-col-세액"><col class="tax-col-비고">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>월</th><th>일</th><th>품목</th><th>규격</th><th>수량</th><th>단가</th><th>공급가액</th><th>세액</th><th>비고</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in page_rows %}
+          <tr>
+            <td>{{ doc_date.month }}</td>
+            <td>{{ doc_date.day }}</td>
+            <td>{{ r.name or '' }}</td>
+            <td>{{ r.get('spec') or '' }}</td>
+            <td>{{ r.quantity or '' }}</td>
+            <td>{{ "{:,}".format(r.get('unit_price') or 0) }}</td>
+            <td>{{ "{:,}".format(r.get('supply_amount') or 0) }}</td>
+            <td>{{ "{:,}".format(r.get('vat') or 0) }}</td>
+            <td></td>
+          </tr>
+          {% endfor %}
+          {% for _ in range(blank_count) %}
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="tax-footer">
+        <table class="tax-footer-table">
+          <tr>
+            <th class="footer-col-1">합계금액</th>
+            <th class="footer-col-3">현 금</th>
+            <th class="footer-col-5">수 표</th>
+            <th class="footer-col-5">어 음</th>
+            <th class="footer-col-7">외상미수금</th>
+            <td rowspan="2" class="footer-col-9">이 금액을 청구 함</td>
+          </tr>
+          <tr>
+            <td class="footer-col-2">{{ "{:,}".format(total_amount) }}</td>
+            <td class="footer-col-4"></td>
+            <td class="footer-col-6"></td>
+            <td class="footer-col-6"></td>
+            <td class="footer-col-8"></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  <div class="doc-page-nav no-print" id="docPageNav" style="display:none">
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="docPagePrev">이전</button>
+    <span class="page-info" id="docPageInfo">1 / 1</span>
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="docPageNext">다음</button>
+  </div>
+  <script>
+  (function() {
+    var groups = document.querySelectorAll('.tax-page-group');
+    var nav = document.getElementById('docPageNav');
+    var prevBtn = document.getElementById('docPagePrev');
+    var nextBtn = document.getElementById('docPageNext');
+    var infoEl = document.getElementById('docPageInfo');
+    if (groups.length <= 1) return;
+    nav.style.display = 'flex';
+    var cur = 1;
+    function update() {
+      groups.forEach(function(g, i) { g.classList.toggle('active', i + 1 === cur); });
+      infoEl.textContent = cur + ' / ' + groups.length;
+      prevBtn.disabled = cur <= 1;
+      nextBtn.disabled = cur >= groups.length;
+    }
+    prevBtn.addEventListener('click', function() { if (cur > 1) { cur--; update(); } });
+    nextBtn.addEventListener('click', function() { if (cur < groups.length) { cur++; update(); } });
+    update();
+  })();
+  </script>
+</body>
+</html>

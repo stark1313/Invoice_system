@@ -1,5 +1,12 @@
 import os
 
+# .env 파일 로드 (선택, pip install python-dotenv)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+except ImportError:
+    pass
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(BASE_DIR, 'instance', 'invoice.db')}"
 SQLALCHEMY_TRACK_MODIFICATIONS = False
