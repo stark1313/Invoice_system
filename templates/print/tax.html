@@ -119,6 +119,25 @@
     .doc-page-nav { display: none; align-items: center; justify-content: center; gap: 10px; padding: 12px; background: #f8f9fa; border-top: 1px solid #dee2e6; }
     .doc-page-nav .btn { min-width: 70px; }
     .doc-page-nav .page-info { font-size: 0.9rem; color: #495057; margin: 0 4px; }
+    /* 공급받는자 보관용: 선·라벨 붉은색 */
+    .tax-sheet-recipient .tax-header { border-bottom-color: #dc2626; }
+    .tax-sheet-recipient .tax-title, .tax-sheet-recipient .tax-copy { color: #dc2626; }
+    .tax-sheet-recipient .tax-bookno-wrap { border-color: #dc2626; }
+    .tax-sheet-recipient .tax-bookno-table td { border-color: #dc2626; }
+    .tax-sheet-recipient .tax-bookno-table .bookno-c, .tax-sheet-recipient .tax-bookno-table .bookno-r { color: #dc2626; }
+    .tax-sheet-recipient { border-color: #dc2626; }
+    .tax-sheet-recipient .tax-side { border-color: #dc2626; color: #dc2626; }
+    .tax-sheet-recipient .tax-recipient-table td, .tax-sheet-recipient .tax-supplier-table td { border-color: #dc2626; }
+    .tax-sheet-recipient .tax-recipient-table td.recipient-label, .tax-sheet-recipient .tax-supplier-table td.supplier-label { color: #dc2626; }
+    .tax-sheet-recipient .tax-info, .tax-sheet-recipient .tax-recipient { border-color: #dc2626; }
+    .tax-sheet-recipient .tax-items th, .tax-sheet-recipient .tax-items td { border-color: #dc2626; }
+    .tax-sheet-recipient .tax-items th { color: #dc2626; border-top-color: #dc2626; border-bottom-color: #dc2626; }
+    .tax-sheet-recipient .tax-summary-table td, .tax-sheet-recipient .tax-summary-table th { border-color: #dc2626; }
+    .tax-sheet-recipient .tax-summary-table th { color: #dc2626; }
+    .tax-sheet-recipient .tax-footer-table td, .tax-sheet-recipient .tax-footer-table th { border-color: #dc2626; }
+    .tax-sheet-recipient .tax-footer-table th, .tax-sheet-recipient .tax-footer-table .footer-col-1,
+    .tax-sheet-recipient .tax-footer-table .footer-col-3, .tax-sheet-recipient .tax-footer-table .footer-col-5,
+    .tax-sheet-recipient .tax-footer-table .footer-col-7, .tax-sheet-recipient .tax-footer-table .footer-col-9 { color: #dc2626; }
   </style>
 </head>
 <body>
@@ -131,7 +150,7 @@
     {% set blank_count = [0, 5 - page_rows|length]|max %}
     <div class="tax-page-group{% if page_idx == 0 %} active{% endif %}" data-page="{{ page_idx + 1 }}" style="{% if page_idx > 0 %}page-break-before: always;{% endif %}">
     {% for copy in ['공급자용', '공급받는자용'] %}
-    <div class="tax-sheet">
+    <div class="tax-sheet{% if copy == '공급받는자용' %} tax-sheet-recipient{% endif %}">
       <div class="tax-header">
         <div class="tax-title"><span class="tax-title-text">세금계산서</span><span class="tax-copy"><span class="tax-copy-paren">(</span><span class="tax-copy-text">{% if copy == '공급자용' %}공  급  자<br>보  관  용{% else %}공급받는자<br>보   관   용{% endif %}</span><span class="tax-copy-paren">)</span></span></div>
         <div class="tax-bookno-wrap">
