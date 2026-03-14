@@ -45,8 +45,10 @@ Render 대시보드 → Service → **Environment**에서 추가:
 | `SUPPLIER_PHONE` | 전화번호 | 02-1234-5678 |
 | `SUPPLIER_FAX` | 팩스 | 02-1234-5679 |
 | `SUPPLIER_CONTACT` | 담당자 | 홍길동 |
+| `UPLOAD_PATH` | 직인/첨부파일 영구 저장 경로 (슬립·재부팅 후에도 유지) | `/var/lib/invoice_system` |
 
 > 환경 변수로 설정하면 회사정보 기본값으로 사용됩니다. 배포 후 **회사정보** 메뉴에서 수정·직인 등록도 가능합니다.
+> **직인/첨부파일이 슬립 후 사라지는 경우**: `UPLOAD_PATH`를 영구 디스크 경로로 설정하세요 (예: `/var/lib/invoice_system`).
 
 ### 1-4. Render 주의사항
 
@@ -94,9 +96,17 @@ SUPPLIER_ADDRESS=서울시 ...
 SUPPLIER_PHONE=02-1234-5678
 SUPPLIER_FAX=02-1234-5679
 SUPPLIER_CONTACT=홍길동
+# 직인/첨부파일 영구 저장 (슬립 후에도 유지). 미설정 시 instance/uploads 사용
+UPLOAD_PATH=/var/lib/invoice_system
 ```
 
 `config.py`가 `.env`를 자동으로 로드합니다. 프로젝트 루트에 `.env` 파일을 두면 됩니다.
+
+**직인/첨부파일 슬립 후 사라짐 방지**: `UPLOAD_PATH`를 설정한 뒤 해당 디렉터리를 생성하세요.
+```bash
+sudo mkdir -p /var/lib/invoice_system/uploads/documents /var/lib/invoice_system/uploads/items
+sudo chown -R www-data:www-data /var/lib/invoice_system
+```
 
 ### 2-4. Gunicorn systemd 서비스
 
@@ -194,4 +204,5 @@ python app.py
 | 502 Bad Gateway | `systemctl status invoice-system` 확인, gunicorn 실행 여부 |
 | DB 오류 | `instance/` 폴더 권한, `invoice.db` 존재 여부 |
 | 직인/파일 업로드 안 됨 | `instance/uploads/` 생성 및 쓰기 권한 |
+| **직인/첨부파일 슬립 후 사라짐** | `UPLOAD_PATH` 환경변수로 영구 경로 지정 (예: `/var/lib/invoice_system`) |
 | 인쇄 시 레이아웃 깨짐 | 브라우저 인쇄 설정, PDF로 저장 후 확인 |

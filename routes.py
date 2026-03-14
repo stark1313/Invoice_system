@@ -15,7 +15,13 @@ from config import (
     SUPPLIER_PHONE,
     SUPPLIER_FAX,
     SUPPLIER_CONTACT,
+    UPLOAD_BASE_PATH,
 )
+
+
+def _upload_base():
+    """업로드 파일 영구 저장 경로. UPLOAD_PATH 미설정 시 instance_path 사용."""
+    return UPLOAD_BASE_PATH or current_app.instance_path
 
 
 def _transaction_rows(t):
@@ -116,7 +122,7 @@ def register_routes(app):
             company.contact = request.form.get("contact", "").strip() or None
             f = request.files.get("stamp")
             if f and f.filename and f.filename.rsplit(".", 1)[-1].lower() in ("png", "jpg", "jpeg", "gif", "webp"):
-                upload_dir = os.path.join(current_app.instance_path, "uploads")
+                upload_dir = os.path.join(_upload_base(), "uploads")
                 os.makedirs(upload_dir, exist_ok=True)
                 filepath = os.path.join(upload_dir, secure_filename(f"stamp_{company.id}.png"))
                 try:
@@ -175,7 +181,7 @@ def register_routes(app):
         return render_template("documents/list.html", documents=documents, q=q)
 
     def _save_document_files(doc, request):
-        upload_dir = os.path.join(current_app.instance_path, "uploads", "documents")
+        upload_dir = os.path.join(_upload_base(), "uploads", "documents")
         os.makedirs(upload_dir, exist_ok=True)
         for i, f in enumerate(request.files.getlist("file")):
             if f and f.filename:
@@ -480,7 +486,7 @@ def register_routes(app):
     def _save_item_image(item, request):
         f = request.files.get("image")
         if f and f.filename and f.filename.rsplit(".", 1)[-1].lower() in ("png", "jpg", "jpeg", "gif", "webp"):
-            upload_dir = os.path.join(current_app.instance_path, "uploads", "items")
+            upload_dir = os.path.join(_upload_base(), "uploads", "items")
             os.makedirs(upload_dir, exist_ok=True)
             ext = f.filename.rsplit(".", 1)[-1].lower()
             if ext == "jpg":

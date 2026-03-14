@@ -1,12 +1,16 @@
 import os
 from flask import Flask
 from sqlalchemy import text
-from config import SQLALCHEMY_DATABASE_URI, SQLALCHEMY_TRACK_MODIFICATIONS, SECRET_KEY
+from config import SQLALCHEMY_DATABASE_URI, SQLALCHEMY_TRACK_MODIFICATIONS, SECRET_KEY, UPLOAD_BASE_PATH
 from extensions import db
 
 def create_app():
     app = Flask(__name__)
     os.makedirs(os.path.join(os.path.dirname(__file__), "instance"), exist_ok=True)
+    # 영구 저장 경로 사용 시 업로드 디렉터리 미리 생성 (슬립 후에도 직인/첨부파일 유지)
+    if UPLOAD_BASE_PATH:
+        for sub in ("uploads", "uploads/documents", "uploads/items"):
+            os.makedirs(os.path.join(UPLOAD_BASE_PATH, sub), exist_ok=True)
     app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = SQLALCHEMY_TRACK_MODIFICATIONS
     app.config["SECRET_KEY"] = SECRET_KEY
