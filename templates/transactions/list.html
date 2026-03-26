@@ -82,7 +82,7 @@
     <div class="w-100"></div>
     <div class="col-12 d-flex justify-content-center">
       <button type="submit" class="btn btn-dark btn-sm">조회</button>
-      <a href="{% if list_type %}/transactions/list/{{ list_type }}{% else %}{{ url_for('transaction_list') }}{% endif %}" class="search-reset ms-2" title="초기화"><span class="search-reset-icon" aria-hidden="true">↺</span>초기화</a>
+      <a href="{% if list_type %}/transactions/list/{{ list_type }}{% else %}{{ url_for('transactions.transaction_list') }}{% endif %}" class="search-reset ms-2" title="초기화"><span class="search-reset-icon" aria-hidden="true">↺</span>초기화</a>
     </div>
   </form>
 </div>
@@ -97,7 +97,7 @@
     <tr>
       <td>{{ t.customer.gubun or '' }}</td>
       <td>{% if t.claim_date %}청구완료{% elif t.delivery_date %}납품완료{% elif t.estimate_date %}견적완료{% else %}주문확정{% endif %}</td>
-      <td><a href="{{ url_for('transaction_edit', id=t.id) }}" class="text-decoration-none">{{ t.transaction_date }}</a></td>
+      <td><a href="{{ url_for('transactions.transaction_edit', id=t.id) }}" class="text-decoration-none">{{ t.transaction_date }}</a></td>
       <td>{{ t.customer.name or '' }}</td>
       <td>{{ (t.project_name or '')[:25] }}{% if t.project_name and t.project_name|length > 25 %}...{% endif %}</td>
       <td class="text-nowrap" style="max-width:200px;overflow:hidden;text-overflow:ellipsis" title="{% for ti in t.items %}{{ (ti.item_name_custom or ti.item.name) if ti.item else (ti.item_name_custom or '-') }}×{{ ti.quantity }}{% if not loop.last %}, {% endif %}{% else %}-{% endfor %}">{{ items_summaries[t.id] }}</td>
@@ -115,19 +115,19 @@
 <nav class="mt-3" aria-label="페이지 네비게이션">
   <ul class="pagination justify-content-center pagination-sm">
     <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-      <a class="page-link" href="{% if pagination.has_prev %}{% if list_type %}{{ url_for('transaction_list', list_type=list_type, page=pagination.prev_num, q=q, customer_id=customer_id, status=status, date_from=date_from, date_to=date_to, gubun=gubun) }}{% else %}{{ url_for('transaction_list', page=pagination.prev_num, q=q, customer_id=customer_id, status=status, date_from=date_from, date_to=date_to, gubun=gubun) }}{% endif %}{% else %}#{% endif %}">이전</a>
+      <a class="page-link" href="{% if pagination.has_prev %}{% if list_type %}{{ url_for('transactions.transaction_list', list_type=list_type, page=pagination.prev_num, q=q, customer_id=customer_id, status=status, date_from=date_from, date_to=date_to, gubun=gubun) }}{% else %}{{ url_for('transactions.transaction_list', page=pagination.prev_num, q=q, customer_id=customer_id, status=status, date_from=date_from, date_to=date_to, gubun=gubun) }}{% endif %}{% else %}#{% endif %}">이전</a>
     </li>
     {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
     {% if p %}
     <li class="page-item {% if p == pagination.page %}active{% endif %}">
-      <a class="page-link" href="{% if list_type %}{{ url_for('transaction_list', list_type=list_type, page=p, q=q, customer_id=customer_id, status=status, date_from=date_from, date_to=date_to, gubun=gubun) }}{% else %}{{ url_for('transaction_list', page=p, q=q, customer_id=customer_id, status=status, date_from=date_from, date_to=date_to, gubun=gubun) }}{% endif %}">{{ p }}</a>
+      <a class="page-link" href="{% if list_type %}{{ url_for('transactions.transaction_list', list_type=list_type, page=p, q=q, customer_id=customer_id, status=status, date_from=date_from, date_to=date_to, gubun=gubun) }}{% else %}{{ url_for('transactions.transaction_list', page=p, q=q, customer_id=customer_id, status=status, date_from=date_from, date_to=date_to, gubun=gubun) }}{% endif %}">{{ p }}</a>
     </li>
     {% else %}
     <li class="page-item disabled"><span class="page-link">…</span></li>
     {% endif %}
     {% endfor %}
     <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-      <a class="page-link" href="{% if pagination.has_next %}{% if list_type %}{{ url_for('transaction_list', list_type=list_type, page=pagination.next_num, q=q, customer_id=customer_id, status=status, date_from=date_from, date_to=date_to, gubun=gubun) }}{% else %}{{ url_for('transaction_list', page=pagination.next_num, q=q, customer_id=customer_id, status=status, date_from=date_from, date_to=date_to, gubun=gubun) }}{% endif %}{% else %}#{% endif %}">다음</a>
+      <a class="page-link" href="{% if pagination.has_next %}{% if list_type %}{{ url_for('transactions.transaction_list', list_type=list_type, page=pagination.next_num, q=q, customer_id=customer_id, status=status, date_from=date_from, date_to=date_to, gubun=gubun) }}{% else %}{{ url_for('transactions.transaction_list', page=pagination.next_num, q=q, customer_id=customer_id, status=status, date_from=date_from, date_to=date_to, gubun=gubun) }}{% endif %}{% else %}#{% endif %}">다음</a>
     </li>
   </ul>
 </nav>

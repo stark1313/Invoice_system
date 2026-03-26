@@ -16,8 +16,8 @@ def create_app():
     app.config["SECRET_KEY"] = SECRET_KEY
     db.init_app(app)
     with app.app_context():
-        from routes import register_routes
-        register_routes(app)
+        from blueprints import register_blueprints
+        register_blueprints(app)
         db.create_all()
         # documents 테이블 마이그레이션 (기존 DB용)
         try:

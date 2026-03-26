@@ -5,7 +5,7 @@
   <h2 class="mb-2">{{ '거래처 수정' if customer else '거래처 추가' }}</h2>
   <div class="mb-3">
     <button type="submit" class="btn btn-primary">저장</button>
-    <a class="btn btn-secondary" href="{{ url_for('customer_list') }}">목록</a>
+    <a class="btn btn-secondary" href="{{ url_for('customers.customer_list') }}">목록</a>
   </div>
   <div class="row">
     <div class="col-md-6">

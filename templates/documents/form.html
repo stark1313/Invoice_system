@@ -5,7 +5,7 @@
   <h2 class="mb-2">{{ '자료 수정' if document else '자료 추가' }}</h2>
   <div class="page-actions mb-3">
     <button type="submit" class="btn btn-primary">저장</button>
-    <a class="btn btn-secondary" href="{{ url_for('document_list') }}">목록</a>
+    <a class="btn btn-secondary" href="{{ url_for('documents.document_list') }}">목록</a>
   </div>
   <div class="row">
     <div class="col-md-6">
@@ -23,7 +23,7 @@
         <div class="mb-2">
           {% for df in document.files %}
           <div class="d-flex align-items-center gap-2 mb-1">
-            <a href="{{ url_for('document_file_download', doc_id=document.id, file_id=df.id) }}" class="btn btn-outline-secondary btn-sm" target="_blank">{{ df.file_name }}</a>
+            <a href="{{ url_for('documents.document_file_download', doc_id=document.id, file_id=df.id) }}" class="btn btn-outline-secondary btn-sm" target="_blank">{{ df.file_name }}</a>
             <label class="form-check form-check-inline mb-0">
               <input type="checkbox" name="remove_file_id" value="{{ df.id }}" class="form-check-input"> 삭제
             </label>
@@ -31,7 +31,7 @@
           {% endfor %}
           {% if document.file_path and not document.files %}
           <div class="d-flex align-items-center gap-2 mb-1">
-            <a href="{{ url_for('document_file_download_legacy', id=document.id) }}" class="btn btn-outline-secondary btn-sm" target="_blank">{{ document.file_name or '첨부파일' }}</a>
+            <a href="{{ url_for('documents.document_file_download_legacy', id=document.id) }}" class="btn btn-outline-secondary btn-sm" target="_blank">{{ document.file_name or '첨부파일' }}</a>
             <label class="form-check form-check-inline mb-0">
               <input type="checkbox" name="remove_legacy_file" value="1" class="form-check-input"> 삭제
             </label>

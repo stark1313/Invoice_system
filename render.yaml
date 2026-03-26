@@ -3,6 +3,7 @@ services:
   - type: web
     name: invoice-system
     runtime: python
+    healthCheckPath: /health
     buildCommand: pip install -r requirements.txt && mkdir -p instance
     startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-level info --access-logfile - --error-logfile - app:app
     envVars:

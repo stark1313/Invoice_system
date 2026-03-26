@@ -149,7 +149,7 @@
         <tr><td class="napum-footer-label">사업자번호</td><td class="napum-footer-colon">:</td><td class="napum-footer-value">{{ supplier.biz_no or '' }}</td></tr>
         <tr><td class="napum-footer-label napum-footer-equal">주소</td><td class="napum-footer-colon">:</td><td class="napum-footer-value">{{ supplier.address or '' }}</td></tr>
         <tr><td class="napum-footer-label napum-footer-equal">상호</td><td class="napum-footer-colon">:</td><td class="napum-footer-value">{{ supplier.name or '' }}</td></tr>
-        <tr><td class="napum-footer-label napum-footer-equal">대표</td><td class="napum-footer-colon">:</td><td class="napum-footer-value napum-footer-value-ceo"><span class="napum-ceo-text">{{ supplier.ceo or '' }}</span><span class="napum-stamp-area" id="stampArea" style="display:{{ 'inline' if show_stamp|default(false) else 'none' }}">{% if supplier.stamp_path %}<img src="{{ url_for('company_stamp') }}" alt="직인" class="napum-stamp-img">{% endif %}</span></td></tr>
+        <tr><td class="napum-footer-label napum-footer-equal">대표</td><td class="napum-footer-colon">:</td><td class="napum-footer-value napum-footer-value-ceo"><span class="napum-ceo-text">{{ supplier.ceo or '' }}</span><span class="napum-stamp-area" id="stampArea" style="display:{{ 'inline' if show_stamp|default(false) else 'none' }}">{% if supplier.stamp_path %}<img src="{{ url_for('company.company_stamp') }}" alt="직인" class="napum-stamp-img">{% endif %}</span></td></tr>
       </table>
     </div>
     <div class="napum-footer-ceo">{% for char in (customer.ceo or '') %}{{ char }}{% if not loop.last %}&nbsp;&nbsp;&nbsp;&nbsp;{% endif %}{% endfor %}</div>

@@ -51,25 +51,25 @@
 <body>
   <div class="sidebar">
     <div class="sidebar-brand">
-      <a href="{{ url_for('transaction_list') }}">태경산업 주문관리 시스템</a>
+      <a href="{{ url_for('transactions.transaction_list') }}">태경산업 주문관리 시스템</a>
     </div>
     <div class="sidebar-category" data-toggle><span class="cat-toggle">⌵</span>거래관리</div>
     <ul class="sidebar-nav sidebar-sub">
-      <li class="nav-item"><a class="nav-link {% if request.endpoint == 'transaction_add' %}active{% endif %}" href="{{ url_for('transaction_add') }}">주문입력</a></li>
-      <li class="nav-item"><a class="nav-link {% if request.endpoint == 'transaction_list' and (list_type|default('') == '') or request.endpoint == 'transaction_edit' %}active{% endif %}" href="{{ url_for('transaction_list') }}">주문내역</a></li>
-      <li class="nav-item"><a class="nav-link {% if request.endpoint and request.endpoint.startswith('customer') %}active{% endif %}" href="{{ url_for('customer_list') }}">거래처리스트</a></li>
+      <li class="nav-item"><a class="nav-link {% if request.endpoint == 'transactions.transaction_add' %}active{% endif %}" href="{{ url_for('transactions.transaction_add') }}">주문입력</a></li>
+      <li class="nav-item"><a class="nav-link {% if request.endpoint == 'transactions.transaction_list' and (list_type|default('') == '') or request.endpoint == 'transactions.transaction_edit' %}active{% endif %}" href="{{ url_for('transactions.transaction_list') }}">주문내역</a></li>
+      <li class="nav-item"><a class="nav-link {% if request.endpoint and request.endpoint.startswith('customers.') %}active{% endif %}" href="{{ url_for('customers.customer_list') }}">거래처리스트</a></li>
     </ul>
     <div class="sidebar-category" data-toggle><span class="cat-toggle">⌵</span>품목관리</div>
     <ul class="sidebar-nav sidebar-sub">
-      <li class="nav-item"><a class="nav-link {% if request.endpoint == 'item_list' %}active{% endif %}" href="{{ url_for('item_list') }}">품목내역</a></li>
-      <li class="nav-item"><a class="nav-link {% if request.endpoint == 'inventory_list' %}active{% endif %}" href="{{ url_for('inventory_list') }}">재고관리</a></li>
+      <li class="nav-item"><a class="nav-link {% if request.endpoint == 'items.item_list' %}active{% endif %}" href="{{ url_for('items.item_list') }}">품목내역</a></li>
+      <li class="nav-item"><a class="nav-link {% if request.endpoint == 'items.inventory_list' %}active{% endif %}" href="{{ url_for('items.inventory_list') }}">재고관리</a></li>
     </ul>
     <div class="sidebar-category" data-toggle><span class="cat-toggle">⌵</span>기타</div>
     <ul class="sidebar-nav sidebar-sub">
-      <li class="nav-item"><a class="nav-link {% if request.endpoint and request.endpoint.startswith('document') %}active{% endif %}" href="{{ url_for('document_list') }}">자료실</a></li>
+      <li class="nav-item"><a class="nav-link {% if request.endpoint and request.endpoint.startswith('documents.') %}active{% endif %}" href="{{ url_for('documents.document_list') }}">자료실</a></li>
       <li class="nav-item"><a class="nav-link" href="https://www.g2b.go.kr" target="_blank" rel="noopener">나라장터</a></li>
       <li class="nav-item"><a class="nav-link" href="https://mail.naver.com" target="_blank" rel="noopener">메일</a></li>
-      <li class="nav-item"><a class="nav-link {% if request.endpoint == 'company_info' %}active{% endif %}" href="{{ url_for('company_info') }}">회사정보</a></li>
+      <li class="nav-item"><a class="nav-link {% if request.endpoint == 'company.company_info' %}active{% endif %}" href="{{ url_for('company.company_info') }}">회사정보</a></li>
     </ul>
   </div>
   <main class="main-content">

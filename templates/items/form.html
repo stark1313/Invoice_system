@@ -5,7 +5,7 @@
   <h2 class="mb-2">{{ '품목 수정' if item else '품목 추가' }}</h2>
   <div class="page-actions mb-3">
     <button type="submit" class="btn btn-primary">저장</button>
-    <a class="btn btn-secondary" href="{{ url_for('item_list') }}">목록</a>
+    <a class="btn btn-secondary" href="{{ url_for('items.item_list') }}">목록</a>
   </div>
   <div class="row">
     <div class="col-md-6">
@@ -31,7 +31,7 @@
         <label class="form-label">품목 사진</label>
         {% if has_image %}
         <div class="mb-2">
-          <img src="{{ url_for('item_image', id=item.id) }}" alt="품목 사진" class="img-thumbnail" style="max-height:180px; max-width:100%;">
+          <img src="{{ url_for('items.item_image', id=item.id) }}" alt="품목 사진" class="img-thumbnail" style="max-height:180px; max-width:100%;">
         </div>
         <div class="form-check mb-2">
           <input type="checkbox" name="remove_image" value="1" class="form-check-input" id="removeImage">

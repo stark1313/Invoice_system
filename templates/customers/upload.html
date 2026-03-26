@@ -4,9 +4,9 @@
 <form method="post" enctype="multipart/form-data" id="customerUploadForm">
   <h2 class="mb-2">거래처 일괄 등록</h2>
   <div class="page-actions mb-3">
-    <a href="{{ url_for('customer_sample_csv') }}" class="btn btn-outline-secondary">샘플 CSV 다운로드</a>
+    <a href="{{ url_for('customers.customer_sample_csv') }}" class="btn btn-outline-secondary">샘플 CSV 다운로드</a>
     <button type="submit" form="customerUploadForm" class="btn btn-primary">업로드</button>
-    <a class="btn btn-secondary" href="{{ url_for('customer_list') }}">목록</a>
+    <a class="btn btn-secondary" href="{{ url_for('customers.customer_list') }}">목록</a>
   </div>
   <p class="text-muted mb-3">CSV 파일을 업로드하면 첫 줄(헤더)은 건너뛰고, 2행부터 거래처가 등록됩니다. 거래처명은 필수입니다.</p>
   <div class="mb-3">

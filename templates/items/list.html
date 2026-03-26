@@ -7,8 +7,8 @@
 </style>
 <h2 class="mb-2">품목 관리</h2>
 <div class="page-actions mb-3">
-  <a class="btn btn-primary" href="{{ url_for('item_add') }}">품목 추가</a>
-  <a class="btn btn-outline-primary" href="{{ url_for('item_upload') }}">일괄 등록</a>
+  <a class="btn btn-primary" href="{{ url_for('items.item_add') }}">품목 추가</a>
+  <a class="btn btn-outline-primary" href="{{ url_for('items.item_upload') }}">일괄 등록</a>
   <button type="button" class="btn btn-outline-danger" id="btnItemDelete">삭제</button>
 </div>
 <form method="get" class="row g-2 align-items-center mb-3">
@@ -20,7 +20,7 @@
   </div>
   {% if q %}
   <div class="col-auto">
-    <a href="{{ url_for('item_list') }}" class="btn btn-link btn-sm">초기화</a>
+    <a href="{{ url_for('items.item_list') }}" class="btn btn-link btn-sm">초기화</a>
   </div>
   {% endif %}
 </form>
@@ -32,7 +32,7 @@
     {% for i in items %}
     <tr>
       <td>{% if i.code != 'DIRECT' %}<input type="checkbox" class="form-check-input item-check" value="{{ i.id }}" aria-label="선택">{% endif %}</td>
-      <td><a href="{{ url_for('item_edit', id=i.id) }}" class="text-decoration-none">{{ i.name or '' }}</a></td>
+      <td><a href="{{ url_for('items.item_edit', id=i.id) }}" class="text-decoration-none">{{ i.name or '' }}</a></td>
       <td>{{ i.spec or '' }}</td>
       <td>{{ i.unit or 'EA' }}</td>
       <td>{{ "{:,}".format(i.unit_price or 0) }}</td>
@@ -45,7 +45,7 @@
 </table>
 <script>
 (function() {
-  var deleteBase = "{{ url_for('item_delete', id=0) }}";
+  var deleteBase = "{{ url_for('items.item_delete', id=0) }}";
   function getCheckedId() {
     var c = document.querySelectorAll('.item-check:checked');
     if (c.length !== 1) { alert('품목을 1건 선택하세요.'); return null; }

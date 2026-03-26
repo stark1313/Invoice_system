@@ -185,7 +185,7 @@
             <table class="tax-supplier-table">
               <colgroup><col style="width:12%"><col style="width:39%"><col style="width:12%"><col style="width:37%"></colgroup>
               <tr><td class="supplier-label">등록번호</td><td class="supplier-value" colspan="3">{{ supplier.biz_no or '' }}</td></tr>
-              <tr><td class="supplier-label">상호<br>(법인명)</td><td class="supplier-value">{{ supplier.name or '' }}</td><td class="supplier-label">성명</td><td class="supplier-value supplier-value-ceo"><span>{{ supplier.ceo or '' }}</span><span class="tax-stamp-area" style="display:{{ 'inline' if show_stamp|default(false) else 'none' }}">{% if supplier.stamp_path %}<img src="{{ url_for('company_stamp') }}" alt="직인" class="tax-stamp-img">{% endif %}</span></td></tr>
+              <tr><td class="supplier-label">상호<br>(법인명)</td><td class="supplier-value">{{ supplier.name or '' }}</td><td class="supplier-label">성명</td><td class="supplier-value supplier-value-ceo"><span>{{ supplier.ceo or '' }}</span><span class="tax-stamp-area" style="display:{{ 'inline' if show_stamp|default(false) else 'none' }}">{% if supplier.stamp_path %}<img src="{{ url_for('company.company_stamp') }}" alt="직인" class="tax-stamp-img">{% endif %}</span></td></tr>
               <tr><td class="supplier-label">사업장<br>주소</td><td class="supplier-value" colspan="3">{{ supplier.address or '' }}</td></tr>
               <tr><td class="supplier-label">업태/종목</td><td class="supplier-value">{{ supplier.business_type or '' }}</td><td class="supplier-label">전화</td><td class="supplier-value">{{ supplier.phone or '' }}</td></tr>
             </table>

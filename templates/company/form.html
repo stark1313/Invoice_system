@@ -58,7 +58,7 @@
         <label class="form-label">직인 (그림파일)</label>
         {% if company.stamp_path %}
         <div class="mb-2">
-          <img src="{{ url_for('company_stamp') }}" alt="직인" class="img-thumbnail" style="max-height:120px;">
+          <img src="{{ url_for('company.company_stamp') }}" alt="직인" class="img-thumbnail" style="max-height:120px;">
         </div>
         {% endif %}
         <input type="file" name="stamp" class="form-control" accept="image/*">

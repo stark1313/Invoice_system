@@ -85,7 +85,7 @@
         </tr>
         <tr>
           <td colspan="2" class="gyeonjeok-left-no-border gyeonjeok-left-large gyeonjeok-gongsa{% if (transaction.project_name or '')|length > 22 %} gyeonjeok-cell-addr{% endif %}">공사명 : {{ transaction.project_name or '' }}</td>
-          <th>상호/대표</th><td class="name-with-stamp"><span class="name-text">{{ (supplier.name or '') }} / {{ (supplier.ceo or '') }}</span><span class="stamp-area" id="stampArea" style="display:{{ 'inline' if show_stamp|default(false) else 'none' }}">{% if supplier.stamp_path %}<img src="{{ url_for('company_stamp') }}" alt="직인" class="stamp-img">{% endif %}</span></td>
+          <th>상호/대표</th><td class="name-with-stamp"><span class="name-text">{{ (supplier.name or '') }} / {{ (supplier.ceo or '') }}</span><span class="stamp-area" id="stampArea" style="display:{{ 'inline' if show_stamp|default(false) else 'none' }}">{% if supplier.stamp_path %}<img src="{{ url_for('company.company_stamp') }}" alt="직인" class="stamp-img">{% endif %}</span></td>
         </tr>
         <tr>
           <td colspan="2" class="gyeonjeok-left-no-border"></td>
