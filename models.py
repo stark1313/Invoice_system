@@ -94,6 +94,17 @@ class DocumentFile(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
+class TransactionAuditLog(db.Model):
+    """주문(Transaction) 생성·수정·삭제·날짜 변경 이력 (주문만 추적)"""
+    __tablename__ = "transaction_audit_logs"
+    id = db.Column(db.Integer, primary_key=True)
+    transaction_id = db.Column(db.Integer, nullable=True)
+    transaction_code = db.Column(db.String(20), default="")
+    action = db.Column(db.String(32), nullable=False)
+    summary = db.Column(db.String(500), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
 class TransactionItem(db.Model):
     __tablename__ = "transaction_items"
     id = db.Column(db.Integer, primary_key=True)

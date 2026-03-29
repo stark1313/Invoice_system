@@ -5,7 +5,14 @@ from sqlalchemy import extract, func, or_
 
 from codegen import next_transaction_code
 from extensions import db
-from models import Customer, Item, Transaction, TransactionItem
+from models import Customer, Item, Transaction, TransactionAuditLog, TransactionItem
+from transaction_audit import (
+    ACTION_CREATE,
+    ACTION_DELETE,
+    ACTION_PATCH_DATE,
+    ACTION_UPDATE,
+    log_order_event,
+)
 from transaction_helpers import build_transaction_items_from_form, direct_input_item
 
 bp = Blueprint("transactions", __name__)
@@ -138,6 +145,37 @@ def transaction_list(list_type=None):
     )
 
 
+@bp.route("/transactions/audit-log")
+def transaction_audit_log():
+    page = request.args.get("page", 1, type=int)
+    per_page = 50
+    q = request.args.get("q", "").strip()
+    query = TransactionAuditLog.query
+    if q:
+        like = f"%{q}%"
+        query = query.filter(
+            or_(
+                TransactionAuditLog.summary.ilike(like),
+                TransactionAuditLog.transaction_code.ilike(like),
+                TransactionAuditLog.action.ilike(like),
+            )
+        )
+    pagination = query.order_by(TransactionAuditLog.created_at.desc()).paginate(page=page, per_page=per_page)
+    action_labels = {
+        ACTION_CREATE: "등록",
+        ACTION_UPDATE: "수정",
+        ACTION_DELETE: "삭제",
+        ACTION_PATCH_DATE: "날짜변경",
+    }
+    return render_template(
+        "transactions/audit_log.html",
+        pagination=pagination,
+        logs=pagination.items,
+        q=q,
+        action_labels=action_labels,
+    )
+
+
 @bp.route("/transactions/add", methods=["GET", "POST"])
 def transaction_add():
     if request.method == "POST":
@@ -164,6 +202,14 @@ def transaction_add():
         db.session.add(t)
         db.session.flush()
         build_transaction_items_from_form(t, request)
+        cust = Customer.query.get(customer_id)
+        cname = cust.name if cust else ""
+        log_order_event(
+            ACTION_CREATE,
+            transaction_id=t.id,
+            code=t.code or "",
+            summary=f"{t.code} / {cname} / 주문 등록",
+        )
         db.session.commit()
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify(ok=True, redirect=url_for("transactions.transaction_list"))
@@ -234,6 +280,13 @@ def transaction_edit(id):
             db.session.delete(ti)
         db.session.flush()
         build_transaction_items_from_form(t, request)
+        cname = t.customer.name if t.customer else ""
+        log_order_event(
+            ACTION_UPDATE,
+            transaction_id=t.id,
+            code=t.code or "",
+            summary=f"{t.code} / {cname} / 주문 수정",
+        )
         db.session.commit()
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify(ok=True, redirect=url_for("transactions.transaction_edit", id=id))
@@ -260,7 +313,16 @@ def transaction_edit(id):
 @bp.route("/transactions/<int:id>/delete", methods=["POST"])
 def transaction_delete(id):
     t = Transaction.query.get_or_404(id)
+    tid = t.id
+    code = t.code or ""
+    cname = t.customer.name if t.customer else ""
     db.session.delete(t)
+    log_order_event(
+        ACTION_DELETE,
+        transaction_id=tid,
+        code=code,
+        summary=f"{code} / {cname} / 주문 삭제",
+    )
     db.session.commit()
     flash("주문이 삭제되었습니다.", "success")
     return redirect(url_for("transactions.transaction_list"))
@@ -286,6 +348,15 @@ def transaction_update_date(id):
         t.claim_date = trans_date
     else:
         t.transaction_date = trans_date
+    labels = {"gyeonjeok": "견적일", "napum": "납품일", "cheonggu": "청구일"}
+    label = labels.get(doc_type, "거래일")
+    cname = t.customer.name if t.customer else ""
+    log_order_event(
+        ACTION_PATCH_DATE,
+        transaction_id=t.id,
+        code=t.code or "",
+        summary=f"{t.code} / {cname} / {label} 변경",
+    )
     db.session.commit()
     return jsonify({"ok": True})
 
@@ -300,10 +371,19 @@ def transaction_delete_bulk():
     if len(ids) >= total:
         flash("전체 삭제는 할 수 없습니다.", "danger")
         return redirect(url_for("transactions.transaction_list"))
+    snapshots = []
     for tid in ids:
         t = Transaction.query.get(tid)
         if t:
+            snapshots.append((t.id, t.code or "", t.customer.name if t.customer else ""))
             db.session.delete(t)
+    for tid, code, cname in snapshots:
+        log_order_event(
+            ACTION_DELETE,
+            transaction_id=tid,
+            code=code,
+            summary=f"{code} / {cname} / 주문 삭제(일괄)",
+        )
     db.session.commit()
     flash(f"주문 {len(ids)}건이 삭제되었습니다.", "success")
     return redirect(url_for("transactions.transaction_list"))
